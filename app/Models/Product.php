@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    PROTECTED $fillable = [
+    protected $fillable = [
         'sku',
         'name',
         'material',
@@ -16,8 +16,18 @@ class Product extends Model
         'active',
     ];
 
+    protected $casts = [
+        'unit_price' => 'decimal:2',
+        'active' => 'boolean',
+    ];
+
     public function quotationItems()
     {
         return $this->hasMany(QuotationItem::class);
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class);
     }
 }

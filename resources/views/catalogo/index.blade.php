@@ -7,6 +7,12 @@
 
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+            @if (session('status'))
+                <div class="mb-6 rounded-md border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-medium text-indigo-800">
+                    {{ session('status') }}
+                </div>
+            @endif
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-indigo-800">
                     
@@ -33,30 +39,38 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="hover:bg-gray-50">
-                                    <td class="py-2 px-4 border-b text-sm text-gray-600">SKU-001</td>
-                                    <td class="py-2 px-4 border-b text-sm text-gray-800">Mesa de comedor</td>
-                                    <td class="py-2 px-4 border-b text-sm text-gray-600">Madera</td>
-                                    <td class="py-2 px-4 border-b text-sm text-gray-600">Mesa rectangular para comedor</td>
-                                    <td class="py-2 px-4 border-b text-sm text-gray-600">$4,500.00</td>
-                                    <td class="py-2 px-4 border-b text-sm text-gray-600">10</td>
-                                    <td class="py-2 px-4 border-b text-sm text-gray-600">Sí</td>
-                                    <td class="py-2 px-4 border-b text-center">
-                                        <div class="flex justify-center items-center">
-                                            <a href="{{ route('catalogo.edit', 1) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
-                                                Editar
-                                            </a>
+                                @forelse ($productos as $producto)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $producto->sku ?? 'Sin SKU' }}</td>
+                                        <td class="py-2 px-4 border-b text-sm text-gray-800">{{ $producto->name }}</td>
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $producto->material ?? 'Sin material' }}</td>
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $producto->description ?? 'Sin descripción' }}</td>
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">${{ number_format($producto->unit_price, 2) }}</td>
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $producto->stock ?? 0 }}</td>
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $producto->active ? 'Sí' : 'No' }}</td>
+                                        <td class="py-2 px-4 border-b text-center">
+                                            <div class="flex justify-center items-center">
+                                                <a href="{{ route('catalogo.edit', $producto) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
+                                                    Editar
+                                                </a>
 
-                                            <form action="{{ route('catalogo.destroy', 1) }}" method="POST" class="inline ml-2" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este producto?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-semibold">
-                                                    Eliminar
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
+                                                <form action="{{ route('catalogo.destroy', $producto) }}" method="POST" class="inline ml-2" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este producto?');">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-semibold">
+                                                        Eliminar
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="8" class="py-6 px-4 text-center text-sm text-gray-500">
+                                            No hay productos registrados.
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>

@@ -16,9 +16,9 @@ class QuotationItem extends Model
     ];
 
     protected $casts = [
-        'unit_price'    => 'decimal:2',
+        'unit_price' => 'decimal:2',
         'line_discount' => 'decimal:2',
-        'subtotal'      => 'decimal:2',
+        'subtotal' => 'decimal:2',
     ];
 
     public function quotation()

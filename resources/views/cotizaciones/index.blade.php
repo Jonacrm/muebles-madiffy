@@ -28,15 +28,15 @@
                     <div class="grid gap-4 mb-6 md:grid-cols-3">
                         <div class="rounded-lg border border-indigo-100 bg-indigo-50 p-4">
                             <p class="text-sm text-indigo-500">Pendientes</p>
-                            <p class="mt-1 text-2xl font-bold text-indigo-900">3</p>
+                            <p class="mt-1 text-2xl font-bold text-indigo-900">{{ $resumen['pendientes'] ?? 0 }}</p>
                         </div>
                         <div class="rounded-lg border border-green-100 bg-green-50 p-4">
                             <p class="text-sm text-green-600">Aceptadas</p>
-                            <p class="mt-1 text-2xl font-bold text-green-800">1</p>
+                            <p class="mt-1 text-2xl font-bold text-green-800">{{ $resumen['aceptadas'] ?? 0 }}</p>
                         </div>
                         <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
                             <p class="text-sm text-gray-600">Convertidas</p>
-                            <p class="mt-1 text-2xl font-bold text-gray-800">1</p>
+                            <p class="mt-1 text-2xl font-bold text-gray-800">{{ $resumen['convertidas'] ?? 0 }}</p>
                         </div>
                     </div>
 
@@ -54,7 +54,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($cotizaciones as $cotizacion)
+                                @forelse ($cotizaciones as $cotizacion)
                                     @php
                                         $estadoClase = [
                                             'Borrador' => 'bg-gray-100 text-gray-700',
@@ -97,7 +97,13 @@
                                             </div>
                                         </td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="py-6 px-4 text-center text-sm text-gray-500">
+                                            No hay cotizaciones registradas.
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>

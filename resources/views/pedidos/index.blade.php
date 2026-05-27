@@ -39,7 +39,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($pedidos as $pedido)
+                                @forelse ($pedidos as $pedido)
                                     <tr class="hover:bg-gray-50">
                                         <td class="py-2 px-4 border-b text-sm font-semibold text-gray-800">{{ $pedido['folio'] }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $pedido['cliente'] }}</td>
@@ -57,7 +57,13 @@
                                             </a>
                                         </td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="py-6 px-4 text-center text-sm text-gray-500">
+                                            No hay pedidos registrados.
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>

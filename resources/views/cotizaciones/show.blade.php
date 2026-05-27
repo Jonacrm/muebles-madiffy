@@ -34,7 +34,6 @@
                                     {{ $cotizacion['estado'] }}
                                 </span>
                             </div>
-                            <p class="mt-2 text-sm text-gray-600">{{ $cotizacion['notas'] }}</p>
                         </div>
 
                         <div class="flex flex-wrap gap-3">
@@ -68,11 +67,11 @@
                             <p class="mt-1 font-semibold text-gray-900">{{ $cotizacion['vendedor'] }}</p>
                         </div>
                         <div class="rounded-lg border border-gray-200 p-4">
-                            <p class="text-sm text-gray-500">Emisión</p>
+                            <p class="text-sm text-gray-500">Emisión de cotización</p>
                             <p class="mt-1 font-semibold text-gray-900">{{ $cotizacion['fecha_emision'] }}</p>
                         </div>
                         <div class="rounded-lg border border-gray-200 p-4">
-                            <p class="text-sm text-gray-500">Vigencia</p>
+                            <p class="text-sm text-gray-500">Vigencia de cotización</p>
                             <p class="mt-1 font-semibold text-gray-900">{{ $cotizacion['vigencia'] }}</p>
                         </div>
                     </div>
@@ -115,17 +114,12 @@
             </div>
 
             <div class="grid gap-6 lg:grid-cols-3">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2 min-h-48">
                     <div class="p-6">
-                        <h3 class="text-lg font-bold text-indigo-800">Flujo de estados</h3>
-                        <div class="mt-4 grid gap-3 md:grid-cols-3">
-                            @foreach (['Borrador', 'Enviada', 'Aceptada', 'Convertida', 'Rechazada', 'Vencida'] as $estado)
-                                <div class="rounded-lg border px-4 py-3 {{ $cotizacion['estado'] === $estado ? 'border-indigo-300 bg-indigo-50' : 'border-gray-200 bg-white' }}">
-                                    <p class="text-sm font-semibold {{ $cotizacion['estado'] === $estado ? 'text-indigo-800' : 'text-gray-600' }}">{{ $estado }}</p>
-                                </div>
-                            @endforeach
-                        </div>
-                        <p class="mt-4 text-sm text-gray-600">La conversión a pedido se habilita únicamente cuando la cotización está en estado Aceptada.</p>
+                        <h3 class="text-lg font-bold text-indigo-800">Notas</h3>
+                        <p class="mt-4 text-sm text-gray-600">
+                            {{ $cotizacion['notas'] ?: 'Sin notas registradas.' }}
+                        </p>
                     </div>
                 </div>
 

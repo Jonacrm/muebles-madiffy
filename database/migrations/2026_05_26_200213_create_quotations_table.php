@@ -22,7 +22,7 @@ return new class extends Migration
                 'aceptada',
                 'convertida',
                 'rechazada',
-                'vencida'
+                'vencida',
             ])->default('borrador');
             $table->decimal('subtotal', 10, 2)->default(0);
             $table->decimal('discount_global', 10, 2)->default(0);
