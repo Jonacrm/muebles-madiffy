@@ -14,8 +14,4 @@ class Catalogo extends Model
         'descripcion',
         'precio',
     ];
-
-    
-
-
 }

@@ -20,6 +20,14 @@
                     <x-nav-link :href="route('catalogo.index')" :active="request()->routeIs('catalogo.*')">
                         Catálogo
                     </x-nav-link>
+
+                    <x-nav-link :href="route('cotizaciones.index')" :active="request()->routeIs('cotizaciones.*')">
+                        Cotizaciones
+                    </x-nav-link>
+
+                    <x-nav-link :href="route('pedidos.index')" :active="request()->routeIs('pedidos.*')">
+                        Pedidos
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -78,6 +86,14 @@
 
             <x-responsive-nav-link :href="route('catalogo.index')" :active="request()->routeIs('catalogo.*')">
                 Catálogo
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('cotizaciones.index')" :active="request()->routeIs('cotizaciones.*')">
+                Cotizaciones
+            </x-responsive-nav-link>
+
+            <x-responsive-nav-link :href="route('pedidos.index')" :active="request()->routeIs('pedidos.*')">
+                Pedidos
             </x-responsive-nav-link>
         </div>
 

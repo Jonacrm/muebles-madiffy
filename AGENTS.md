@@ -4,7 +4,7 @@
 - Laravel 12 app on PHP `^8.2` with Breeze auth, Blade views, Vite, Tailwind, Alpine, and Axios.
 - Laravel 12 routing/bootstrap lives in `bootstrap/app.php`; do not look for `app/Http/Kernel.php`.
 - Web routes are in `routes/web.php`; Breeze auth routes are split into `routes/auth.php`.
-- `/dashboard`, `/clientes`, and `/catalogo` are auth-only routes; `clientes` and `catalogo` are resource routes.
+- `/dashboard`, `/clientes`, `/catalogo`, `/cotizaciones`, and `/pedidos` are auth-only routes; `clientes`, `catalogo`, and `cotizaciones` are resource routes. `pedidos` currently only has `index` and `show`.
 
 ## Commands
 - Fresh setup: `composer setup` runs Composer install, creates `.env`, generates the app key, migrates, installs npm packages, and builds assets.
@@ -18,11 +18,12 @@
 - `.env.example` defaults to SQLite and `database/database.sqlite` is present.
 - `phpunit.xml` forces tests to SQLite `:memory:`, array cache/session/mail, and sync queue; feature tests do not need the local database file.
 - Existing migrations only create users, password resets, sessions, cache, and queue tables.
-- `DatabaseSeeder` only creates `test@example.com`; there are no seeders for clients or catalog products.
+- `DatabaseSeeder` only creates `test@example.com`; there are no seeders for clients, catalog products, quotes, or orders.
 
 ## App-Specific Notes
-- `ClienteController` and `CatalogoController` are mostly placeholders returning Blade views; there are no `Cliente` or catalog/product Eloquent models yet.
-- `resources/views/clientes/*` and `resources/views/catalogo/*` contain static/prototype UI; implement migrations/models/controllers before assuming real CRUD exists.
-- Domain UI copy and routes are Spanish (`clientes`, `catalogo`, `Catálogo`); preserve that convention in new screens.
+- `ClienteController`, `CatalogoController`, `CotizacionController`, and `PedidoController` are mostly placeholders returning Blade views or temporary redirects.
+- `App\Models\Catalogo` exists as a minimal model, but there is no complete catalog CRUD persistence yet. There is no `Cliente`, `Cotizacion`, or `Pedido` Eloquent model yet.
+- `resources/views/clientes/*`, `resources/views/catalogo/*`, `resources/views/cotizaciones/*`, and `resources/views/pedidos/*` contain static/prototype UI; implement migrations/models/controllers before assuming real CRUD exists.
+- Domain UI copy and routes are Spanish (`clientes`, `catalogo`, `cotizaciones`, `pedidos`, `Catálogo`); preserve that convention in new screens.
 - Main layout loads assets with `@vite(['resources/css/app.css', 'resources/js/app.js'])`; Alpine starts in `resources/js/app.js`.
 - Tailwind scans Blade files under `resources/views`, cached views, and Laravel pagination views only; update `tailwind.config.js` if adding class strings outside those paths.
