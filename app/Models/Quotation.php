@@ -20,9 +20,10 @@ class Quotation extends Model
 
     protected $casts = [
         'expires_at' => 'date',
-        'subtotal'   => 'decimal:2',
-        'tax'        => 'decimal:2',
-        'total'      => 'decimal:2',
+        'subtotal' => 'decimal:2',
+        'discount_global' => 'decimal:2',
+        'tax' => 'decimal:2',
+        'total' => 'decimal:2',
     ];
 
     public function client()
@@ -52,8 +53,6 @@ class Quotation extends Model
 
     public function isConvertible(): bool
     {
-        return $this->status === 'aceptada' && !$this->isExpired();
+        return $this->status === 'aceptada' && ! $this->isExpired();
     }
-
-
 }

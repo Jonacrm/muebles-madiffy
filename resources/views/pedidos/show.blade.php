@@ -94,8 +94,8 @@
             <div class="grid gap-6 lg:grid-cols-3">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2">
                     <div class="p-6">
-                        <h3 class="text-lg font-bold text-indigo-800">Conversión transaccional pendiente</h3>
-                        <p class="mt-2 text-sm text-gray-600">Cuando existan modelos y migraciones, este flujo debe crear el pedido y sus líneas dentro de una transacción, marcando la cotización como Convertida.</p>
+                        <h3 class="text-lg font-bold text-indigo-800">Snapshot de precios</h3>
+                        <p class="mt-2 text-sm text-gray-600">Este pedido conserva los productos, cantidades, descuentos y precios pactados al convertir la cotización.</p>
                     </div>
                 </div>
 

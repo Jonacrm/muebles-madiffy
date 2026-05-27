@@ -23,11 +23,12 @@
                             </div>
 
                             <div>
-                                <label for="cliente" class="block text-sm font-medium text-indigo-500">Cliente</label>
-                                <select name="cliente" id="cliente" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option>Empresa Mueblera S.A.</option>
-                                    <option>Hoteles del Norte</option>
-                                    <option>Arquitectura Roble</option>
+                                <label for="client_id" class="block text-sm font-medium text-indigo-500">Cliente</label>
+                                <select name="client_id" id="client_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                    <option value="">Selecciona un cliente</option>
+                                    @foreach ($clientes as $cliente)
+                                        <option value="{{ $cliente->id }}" @selected(old('client_id', $cotizacion['client_id']) == $cliente->id)>{{ $cliente->name }}</option>
+                                    @endforeach
                                 </select>
                             </div>
 
@@ -37,21 +38,27 @@
                             </div>
 
                             <div>
-                                <label for="vigencia" class="block text-sm font-medium text-indigo-500">Vigencia</label>
-                                <input type="date" name="vigencia" id="vigencia" value="{{ old('vigencia', '2026-06-09') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <label for="expires_at" class="block text-sm font-medium text-indigo-500">Vigencia</label>
+                                <input type="date" name="expires_at" id="expires_at" value="{{ old('expires_at', '2026-06-09') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             </div>
 
                             <div>
-                                <label for="vendedor" class="block text-sm font-medium text-indigo-500">Vendedor</label>
-                                <input type="text" name="vendedor" id="vendedor" value="{{ old('vendedor', 'Jona CRM') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <label for="user_id" class="block text-sm font-medium text-indigo-500">Vendedor</label>
+                                <input type="hidden" name="user_id" id="user_id" value="{{ old('user_id', auth()->id()) }}">
+                                <input type="text" value="{{ auth()->user()->name }}" class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" disabled>
                             </div>
 
                             <div>
-                                <label for="estado" class="block text-sm font-medium text-indigo-500">Estado inicial</label>
-                                <select name="estado" id="estado" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option>Borrador</option>
-                                    <option>Enviada</option>
+                                <label for="status" class="block text-sm font-medium text-indigo-500">Estado inicial</label>
+                                <select name="status" id="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                    <option value="borrador" @selected(old('status', 'borrador') === 'borrador')>Borrador</option>
+                                    <option value="enviada" @selected(old('status') === 'enviada')>Enviada</option>
                                 </select>
+                            </div>
+
+                            <div>
+                                <label for="discount_global" class="block text-sm font-medium text-indigo-500">Descuento global</label>
+                                <input type="number" step="0.01" min="0" name="discount_global" id="discount_global" value="{{ old('discount_global', $cotizacion['descuento_global']) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                             </div>
                         </div>
                     </div>
@@ -84,23 +91,24 @@
                                     @foreach ($cotizacion['lineas'] as $index => $linea)
                                         <tr>
                                             <td class="py-2 px-4 border-b text-sm text-gray-800">
-                                                <select name="lineas[{{ $index }}][producto]" class="min-w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                                    <option>{{ $linea['producto'] }}</option>
-                                                    <option>Escritorio ejecutivo</option>
-                                                    <option>Sillón modular</option>
+                                                <select name="items[{{ $index }}][product_id]" class="min-w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                    <option value="">Selecciona un producto</option>
+                                                    @foreach ($productos as $producto)
+                                                        <option value="{{ $producto->id }}" @selected(old("items.$index.product_id", $linea['product_id']) == $producto->id)>{{ $producto->name }}</option>
+                                                    @endforeach
                                                 </select>
                                             </td>
                                             <td class="py-2 px-4 border-b text-sm text-gray-600">
-                                                <input type="text" name="lineas[{{ $index }}][descripcion]" value="{{ $linea['descripcion'] }}" class="min-w-64 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <input type="text" value="{{ $linea['descripcion'] }}" class="min-w-64 rounded-md border-gray-300 bg-gray-100 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" disabled>
                                             </td>
                                             <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                                <input type="number" name="lineas[{{ $index }}][cantidad]" value="{{ $linea['cantidad'] }}" min="1" class="w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <input type="number" name="items[{{ $index }}][quantity]" value="{{ old("items.$index.quantity", $linea['cantidad']) }}" min="1" class="w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                             </td>
                                             <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                                <input type="number" name="lineas[{{ $index }}][precio_unitario]" value="{{ $linea['precio_unitario'] }}" step="0.01" min="0" class="w-32 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <input type="number" name="items[{{ $index }}][unit_price]" value="{{ old("items.$index.unit_price", $linea['precio_unitario']) }}" step="0.01" min="0" class="w-32 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                             </td>
                                             <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                                <input type="number" name="lineas[{{ $index }}][descuento_linea]" value="{{ $linea['descuento_linea'] }}" step="0.01" min="0" class="w-32 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                                                <input type="number" name="items[{{ $index }}][line_discount]" value="{{ old("items.$index.line_discount", $linea['descuento_linea']) }}" step="0.01" min="0" class="w-32 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                                             </td>
                                             <td class="py-2 px-4 border-b text-right text-sm font-semibold text-gray-800">${{ number_format($linea['subtotal'], 2) }}</td>
                                         </tr>

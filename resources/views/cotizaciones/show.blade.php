@@ -114,23 +114,23 @@
             </div>
 
             <div class="grid gap-6 lg:grid-cols-3">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2">
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2 min-h-48">
                     <div class="p-6">
                         <h3 class="text-lg font-bold text-indigo-800">Notas</h3>
-                            <p class="mt-4 text-sm text-gray-600">
-                            {{ $cotizacion['notas'] }}
-                            </p>
+                        <p class="mt-4 text-sm text-gray-600">
+                            {{ $cotizacion['notas'] ?: 'Sin notas registradas.' }}
+                        </p>
                     </div>
-                            
                 </div>
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6 text-sm text-gray-700">
-                            <h3 class="mb-4 text-lg font-bold text-indigo-800">Totales</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between">
-                                    <span>Subtotal</span>
-                                        <span class="font-semibold">${{ number_format($cotizacion['subtotal'], 2) }}  </span>
-                                </div>
+
+                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+                    <div class="p-6 text-sm text-gray-700">
+                        <h3 class="mb-4 text-lg font-bold text-indigo-800">Totales</h3>
+                        <div class="space-y-3">
+                            <div class="flex justify-between">
+                                <span>Subtotal</span>
+                                <span class="font-semibold">${{ number_format($cotizacion['subtotal'], 2) }}</span>
+                            </div>
                             <div class="flex justify-between">
                                 <span>Descuento global</span>
                                 <span class="font-semibold">${{ number_format($cotizacion['descuento_global'], 2) }}</span>
@@ -147,13 +147,9 @@
                                 <span>Total</span>
                                 <span>${{ number_format($cotizacion['total'], 2) }}</span>
                             </div>
-                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-                
             </div>
 
             <div>
