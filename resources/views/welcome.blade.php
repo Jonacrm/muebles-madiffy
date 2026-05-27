@@ -69,15 +69,10 @@
                 color: var(--indigo-800);
             }
 
-            .brand-mark {
-                display: grid;
-                width: 42px;
-                height: 42px;
-                place-items: center;
-                border-radius: 14px;
-                color: var(--white);
-                background: linear-gradient(135deg, var(--indigo-600), var(--indigo-800));
-                box-shadow: 0 18px 40px rgba(67, 56, 202, 0.24);
+            .brand-logo {
+                width: 150px;
+                height: 150px;
+                object-fit: contain;
             }
 
             .nav-actions {
@@ -355,7 +350,7 @@
         <div class="page">
             <header class="topbar">
                 <a href="{{ url('/') }}" class="brand" aria-label="Inicio Mueblify">
-                    <span class="brand-mark">M</span>
+                    <img src="{{ asset('images/logo-mueblify.png') }}" alt="Mueblify" class="brand-logo">
                     <span>Mueblify</span>
                 </a>
 

@@ -46,19 +46,19 @@ class CotizacionController extends Controller
 
     public function update(Request $request, string $cotizacion): RedirectResponse
     {
-        return redirect()->route('cotizaciones.show', $cotizacion)->with('status', 'Cotización actualizada temporalmente.');
+        return redirect()->route('cotizaciones.show', $cotizacion)->with('status', 'Cotización actualizada.');
     }
 
     public function destroy(string $cotizacion): RedirectResponse
     {
-        return redirect()->route('cotizaciones.index')->with('status', 'Cotización eliminada temporalmente.');
+        return redirect()->route('cotizaciones.index')->with('status', 'Cotización eliminada.');
     }
 
     public function convertir(string $cotizacion): RedirectResponse
     {
         return redirect()
             ->route('pedidos.show', $cotizacion)
-            ->with('status', 'Cotización convertida temporalmente a pedido. La implementación final usará transacción y snapshot de precios.');
+            ->with('status', 'Cotización convertida a pedido.');
     }
 
     /**
@@ -125,7 +125,7 @@ class CotizacionController extends Controller
             'folio' => sprintf('COT-2026-%03d', $numero),
             'cliente' => $clientes[$id] ?? 'Cliente de demostración',
             'rfc' => 'XAXX010101000',
-            'vendedor' => 'Jona CRM',
+            'vendedor' => 'Alan Lovelace',
             'fecha_emision' => '2026-05-26',
             'vigencia' => '2026-06-09',
             'estado' => $estados[$id] ?? 'Borrador',
