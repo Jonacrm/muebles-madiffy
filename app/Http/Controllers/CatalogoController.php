@@ -11,7 +11,7 @@ class CatalogoController extends Controller
      */
     public function index()
     {
-        //
+        return view('catalogo.index');
     }
 
     /**
@@ -19,7 +19,7 @@ class CatalogoController extends Controller
      */
     public function create()
     {
-        //
+        return view('catalogo.create');
     }
 
     /**
@@ -27,7 +27,8 @@ class CatalogoController extends Controller
      */
     public function store(Request $request)
     {
-        //
+
+        return redirect()->route('catalogo.index')->with('status', 'Producto guardado temporalmente.');
     }
 
     /**
@@ -43,7 +44,9 @@ class CatalogoController extends Controller
      */
     public function edit(string $id)
     {
-        //
+        return view('catalogo.edit', [
+            'catalogoId' => $id,
+        ]);
     }
 
     /**
@@ -51,7 +54,7 @@ class CatalogoController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        return redirect()->route('catalogo.index')->with('status', 'Producto actualizado temporalmente.');
     }
 
     /**
@@ -59,6 +62,6 @@ class CatalogoController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        return redirect()->route('catalogo.index')->with('status', 'Producto eliminado temporalmente.');
     }
 }

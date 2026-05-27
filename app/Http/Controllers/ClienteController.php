@@ -11,7 +11,7 @@ class ClienteController extends Controller
      */
     public function index()
     {
-        return view('clientes.index'); 
+        return view('clientes.index');
     }
 
     /**
@@ -27,7 +27,7 @@ class ClienteController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        return redirect()->route('clientes.index')->with('status', 'Cliente guardado temporalmente.');
     }
 
     /**
@@ -43,7 +43,9 @@ class ClienteController extends Controller
      */
     public function edit(string $id)
     {
-        return view('clientes.edit');
+        return view('clientes.edit', [
+            'clienteId' => $id,
+        ]);
     }
 
     /**
@@ -51,7 +53,7 @@ class ClienteController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        return redirect()->route('clientes.index')->with('status', 'Cliente actualizado temporalmente.');
     }
 
     /**
@@ -59,6 +61,6 @@ class ClienteController extends Controller
      */
     public function destroy(string $id)
     {
-        return redirect()->route('clientes.index'); #El redirect() funcionara para que regrese cuando no hay vista
+        return redirect()->route('clientes.index')->with('status', 'Cliente eliminado temporalmente.');
     }
 }

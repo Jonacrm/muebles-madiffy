@@ -10,28 +10,38 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     
-                    <form action="{{ route('clientes.update', $cliente->id ?? 1) }}" method="POST" class="space-y-4">
-                        @csrf 
+                    <form action="{{ route('clientes.update', $clienteId) }}" method="POST" class="space-y-4">
+                        @csrf
                         @method('PUT')
                         
                         <div>
                             <label for="nombre" class="block text-sm font-medium text-indigo-500">Nombre de la empresa/cliente</label>
-                            <input type="text" name="nombre" id="nombre" value="{{ $cliente->nombre ?? 'Empresa de Prueba' }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="text" name="nombre" id="nombre" value="{{ old('nombre', 'Empresa Mueblera S.A.') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
 
                         <div>
                             <label for="correo" class="block text-sm font-medium text-indigo-500">Correo electrónico</label>
-                            <input type="email" name="correo" id="correo" value="{{ $cliente->correo ?? 'prueba@test.com' }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="email" name="correo" id="correo" value="{{ old('correo', 'contacto@mueblera.com') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
                         </div>
 
                         <div>
                             <label for="telefono" class="block text-sm font-medium text-indigo-500">Teléfono</label>
-                            <input type="text" name="telefono" id="telefono" value="{{ $cliente->telefono ?? '555-1234' }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                            <input type="text" name="telefono" id="telefono" value="{{ old('telefono', '555-123-4567') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+
+                        <div>
+                            <label for="rfc" class="block text-sm font-medium text-indigo-500">RFC</label>
+                            <input type="text" name="rfc" id="rfc" value="{{ old('rfc', 'XAXX010101000') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </div>
+
+                        <div>
+                            <label for="direccion" class="block text-sm font-medium text-indigo-500">Dirección</label>
+                            <textarea name="direccion" id="direccion" rows="3" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('direccion', 'Av. Siempre Viva 123') }}</textarea>
                         </div>
 
                         <div class="flex items-center justify-end mt-6">
                             <a href="{{ route('clientes.index') }}" class="text-gray-600 hover:text-gray-900 mr-4">Cancelar</a>
-                            <button type="submit" class="bbg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded">
+                            <button type="submit" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out shadow">
                                 Actualizar cliente
                             </button>
                         </div>
