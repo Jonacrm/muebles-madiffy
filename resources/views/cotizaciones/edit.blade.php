@@ -58,100 +58,22 @@
                             <div>
                                 <label for="status" class="block text-sm font-medium text-indigo-500">Estado</label>
                                 <select name="status" id="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    @foreach (['borrador' => 'Borrador', 'enviada' => 'Enviada', 'aceptada' => 'Aceptada', 'convertida' => 'Convertida', 'rechazada' => 'Rechazada', 'vencida' => 'Vencida'] as $valor => $etiqueta)
+                                    @foreach (['borrador' => 'Borrador', 'enviada' => 'Enviada', 'aceptada' => 'Aceptada', 'rechazada' => 'Rechazada', 'vencida' => 'Vencida'] as $valor => $etiqueta)
                                         <option value="{{ $valor }}" @selected(old('status', $cotizacion['status'] ?? strtolower($cotizacion['estado'])) === $valor)>{{ $etiqueta }}</option>
                                     @endforeach
                                 </select>
                             </div>
 
-                            <div>
-                                <label for="discount_global" class="block text-sm font-medium text-indigo-500">Descuento global</label>
-                                <input type="number" step="0.01" min="0" name="discount_global" id="discount_global" value="{{ old('discount_global', $cotizacion['discount_global'] ?? $cotizacion['descuento_global']) }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6">
-                        <h3 class="mb-6 text-lg font-bold text-indigo-800">Conceptos cotizados</h3>
-
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full bg-white border border-gray-200">
-                                <thead class="bg-gray-100">
-                                    <tr>
-                                        <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Producto</th>
-                                        <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Descripción</th>
-                                        <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Cantidad</th>
-                                        <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Precio</th>
-                                        <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Descuento</th>
-                                        <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Importe</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach ($cotizacion['lineas'] as $index => $linea)
-                                        <tr>
-                                            <td class="py-2 px-4 border-b text-sm text-gray-800">
-                                                <select name="items[{{ $index }}][product_id]" class="min-w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                                    <option value="">Selecciona un producto</option>
-                                                    @foreach ($productos as $producto)
-                                                        <option value="{{ $producto->id }}" @selected(old("items.$index.product_id", $linea['product_id']) == $producto->id)>{{ $producto->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </td>
-                                            <td class="py-2 px-4 border-b text-sm text-gray-600">
-                                                <input type="text" value="{{ $linea['descripcion'] }}" class="min-w-64 rounded-md border-gray-300 bg-gray-100 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" disabled>
-                                            </td>
-                                            <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                                <input type="number" name="items[{{ $index }}][quantity]" value="{{ old("items.$index.quantity", $linea['quantity'] ?? $linea['cantidad']) }}" min="1" class="w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            </td>
-                                            <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                                <input type="number" name="items[{{ $index }}][unit_price]" value="{{ old("items.$index.unit_price", $linea['unit_price'] ?? $linea['precio_unitario']) }}" step="0.01" min="0" class="w-32 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            </td>
-                                            <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                                <input type="number" name="items[{{ $index }}][line_discount]" value="{{ old("items.$index.line_discount", $linea['line_discount'] ?? $linea['descuento_linea']) }}" step="0.01" min="0" class="w-32 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                                            </td>
-                                            <td class="py-2 px-4 border-b text-right text-sm font-semibold text-gray-800">${{ number_format($linea['subtotal'], 2) }}</td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="grid gap-6 lg:grid-cols-3">
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2">
-                        <div class="p-6">
-                            <label for="notas" class="block text-sm font-medium text-indigo-500">Notas comerciales</label>
-                            <textarea name="notas" id="notas" rows="4" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">{{ old('notas', $cotizacion['notas']) }}</textarea>
-                        </div>
-                    </div>
-
-                    <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div class="p-6 text-sm text-gray-700">
-                            <h3 class="mb-4 text-lg font-bold text-indigo-800">Totales</h3>
-                            <div class="space-y-3">
-                                <div class="flex justify-between">
-                                    <span>Subtotal</span>
-                                    <span class="font-semibold">${{ number_format($cotizacion['subtotal'], 2) }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>Descuento global</span>
-                                    <span class="font-semibold">${{ number_format($cotizacion['descuento_global'], 2) }}</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span>IVA 16%</span>
-                                    <span class="font-semibold">${{ number_format($cotizacion['iva'], 2) }}</span>
-                                </div>
-                                <div class="border-t pt-3 flex justify-between text-base font-bold text-indigo-900">
-                                    <span>Total</span>
-                                    <span>${{ number_format($cotizacion['total'], 2) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                @livewire('cotizacion-line-items', [
+                    'productosIniciales' => $productos,
+                    'lineasIniciales' => old('items', $cotizacion['lineas']),
+                    'descuentoGlobalInicial' => old('discount_global', $cotizacion['discount_global'] ?? $cotizacion['descuento_global']),
+                    'notasIniciales' => old('notas', $cotizacion['notas']),
+                ], key('cotizacion-edit-line-items-'.$cotizacion['id']))
 
                 <div class="flex items-center justify-end">
                     <a href="{{ route('cotizaciones.index') }}" class="mr-4 text-gray-600 hover:text-gray-900">Cancelar</a>

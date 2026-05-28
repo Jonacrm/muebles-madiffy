@@ -1,59 +1,315 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Muebles
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicación web en Laravel para gestionar el flujo comercial de una mueblería: clientes, catálogo de productos, cotizaciones y pedidos generados desde cotizaciones aceptadas.
 
-## About Laravel
+## Estado Actual
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- Autenticación implementada con Laravel Breeze.
+- CRUD persistente para clientes.
+- CRUD persistente para productos del catálogo.
+- Cotizaciones persistentes con líneas, estados comerciales, descuentos, IVA y total.
+- Conversión de cotizaciones aceptadas a pedidos con snapshot de precios.
+- Pedidos disponibles como módulo de consulta: listado y detalle.
+- Dashboard autenticado disponible, pero todavía sin métricas de negocio.
+- Livewire no está instalado ni usado actualmente; la UI usa Blade, Tailwind, Alpine y Vite.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Stack Técnico
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| Área | Tecnología |
+| --- | --- |
+| Backend | PHP `^8.2`, Laravel `^12.0` |
+| Autenticación | Laravel Breeze |
+| Vistas | Blade y Blade Components |
+| Frontend | Tailwind CSS, Alpine.js, Axios |
+| Assets | Vite |
+| Base de datos local | SQLite por defecto |
+| Testing | PHPUnit `11`, pruebas Feature y Unit |
+| Estilo PHP | Laravel Pint |
 
-## Learning Laravel
+## Requisitos
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.2 o superior.
+- Composer.
+- Node.js y npm.
+- SQLite para el entorno local por defecto, o MySQL/MariaDB configurando `.env`.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Instalación
 
-## Laravel Sponsors
+El proyecto incluye un script de setup en `composer.json`:
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+composer setup
+```
 
-### Premium Partners
+Ese comando instala dependencias PHP, crea `.env` si no existe, genera la app key, ejecuta migraciones, instala dependencias npm y compila assets.
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+Instalación manual equivalente:
 
-## Contributing
+```bash
+composer install
+copy .env.example .env
+php artisan key:generate
+php artisan migrate
+npm install
+npm run build
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Para crear el usuario de prueba del seeder:
 
-## Code of Conduct
+```bash
+php artisan db:seed
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Credenciales del usuario generado por `DatabaseSeeder`:
 
-## Security Vulnerabilities
+| Campo | Valor |
+| --- | --- |
+| Email | `test@example.com` |
+| Password | `password` |
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Desarrollo Local
 
-## License
+Levantar el stack completo de desarrollo:
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+composer dev
+```
+
+Ese comando ejecuta en paralelo `php artisan serve`, `php artisan queue:listen --tries=1 --timeout=0`, `php artisan pail --timeout=0` y `npm run dev`.
+
+Comandos individuales útiles:
+
+```bash
+php artisan serve
+npm run dev
+npm run build
+composer test
+vendor/bin/pint --test
+vendor/bin/pint
+```
+
+## Variables Y Base De Datos
+
+`.env.example` viene configurado con SQLite:
+
+```env
+DB_CONNECTION=sqlite
+```
+
+El archivo `database/database.sqlite` existe en el proyecto. Si se usa MySQL con XAMPP, ajustar en `.env` los valores `DB_CONNECTION`, `DB_HOST`, `DB_PORT`, `DB_DATABASE`, `DB_USERNAME` y `DB_PASSWORD`.
+
+Las pruebas usan SQLite en memoria mediante `phpunit.xml`:
+
+```env
+DB_CONNECTION=sqlite
+DB_DATABASE=:memory:
+```
+
+## Rutas Principales
+
+Las rutas web están en `routes/web.php`. Laravel 12 configura routing desde `bootstrap/app.php`.
+
+| Ruta | Nombre | Estado |
+| --- | --- | --- |
+| `/` | Sin nombre | Vista pública `welcome` |
+| `/dashboard` | `dashboard` | Requiere auth y usuario verificado |
+| `/clientes` | `clientes.*` | Resource CRUD autenticado |
+| `/catalogo` | `catalogo.*` | Resource CRUD autenticado |
+| `/cotizaciones` | `cotizaciones.*` | Resource CRUD autenticado |
+| `/cotizaciones/{cotizacion}/convertir` | `cotizaciones.convertir` | Convierte cotización aceptada a pedido |
+| `/pedidos` | `pedidos.index` | Listado autenticado |
+| `/pedidos/{pedido}` | `pedidos.show` | Detalle autenticado |
+| `/profile` | `profile.*` | Perfil de Breeze |
+| `/login`, `/register`, `/logout` | Auth Breeze | Autenticación |
+
+## Estructura Relevante
+
+```text
+app/
+  Http/Controllers/
+    CatalogoController.php
+    ClienteController.php
+    CotizacionController.php
+    PedidoController.php
+    ProfileController.php
+  Models/
+    Client.php
+    Product.php
+    Quotation.php
+    QuotationItem.php
+    Order.php
+    OrderItem.php
+    User.php
+  Services/
+    CotizacionTotals.php
+    QuotationService.php
+    ConversionService.php
+database/
+  migrations/
+resources/
+  views/
+    clientes/
+    catalogo/
+    cotizaciones/
+    pedidos/
+    layouts/
+routes/
+  web.php
+  auth.php
+```
+
+## Modelo De Datos
+
+| Tabla | Propósito |
+| --- | --- |
+| `clients` | Clientes o empresas compradoras |
+| `products` | Productos del catálogo de muebles |
+| `quotations` | Cotizaciones comerciales |
+| `quotation_items` | Conceptos o líneas de una cotización |
+| `orders` | Pedidos generados desde cotizaciones |
+| `order_items` | Snapshot de conceptos y precios del pedido |
+| `users` | Usuarios autenticados de Breeze |
+
+Relaciones principales:
+
+- `Client` tiene muchas `Quotation`.
+- `Product` tiene muchas `QuotationItem` y muchas `OrderItem`.
+- `Quotation` pertenece a `Client` y `User`, tiene muchas `QuotationItem` y puede tener un `Order`.
+- `QuotationItem` pertenece a `Quotation` y `Product`.
+- `Order` pertenece a `Quotation`, `Client` y `User`, y tiene muchas `OrderItem`.
+- `OrderItem` pertenece a `Order` y `Product`.
+
+## Módulos Funcionales
+
+### Clientes
+
+- Controlador: `app/Http/Controllers/ClienteController.php`.
+- Modelo: `app/Models/Client.php`.
+- Vistas: `resources/views/clientes`.
+- Campos: nombre, correo, teléfono, RFC y dirección.
+- Funciones: listar, crear, editar, actualizar y eliminar.
+- Regla actual: no se elimina un cliente si tiene cotizaciones registradas.
+
+### Catálogo
+
+- Controlador: `app/Http/Controllers/CatalogoController.php`.
+- Modelo activo: `app/Models/Product.php`.
+- Vistas: `resources/views/catalogo`.
+- Campos: SKU, nombre, material, descripción, precio unitario, stock y activo.
+- Funciones: listar, crear, editar, actualizar y eliminar productos.
+- Regla actual: no se elimina un producto si fue usado en cotizaciones o pedidos.
+
+### Cotizaciones
+
+- Controlador: `app/Http/Controllers/CotizacionController.php`.
+- Modelos: `Quotation` y `QuotationItem`.
+- Vistas: `resources/views/cotizaciones`.
+- Estados: `borrador`, `enviada`, `aceptada`, `convertida`, `rechazada`, `vencida`.
+- Funciones: listar, crear, ver, editar, actualizar, eliminar y convertir a pedido.
+- Regla actual: una cotización con pedido asociado no se puede eliminar.
+- Conversión actual: solo se permite convertir si el estado es `aceptada` y no existe pedido previo.
+
+Fórmula usada por el controlador para totales:
+
+```text
+subtotal_linea = max((cantidad * precio_unitario) - descuento_linea, 0)
+subtotal = suma de subtotales de línea
+base = max(subtotal - descuento_global, 0)
+iva = base * 0.16
+total = base + iva
+```
+
+### Pedidos
+
+- Controlador: `app/Http/Controllers/PedidoController.php`.
+- Modelos: `Order` y `OrderItem`.
+- Vistas: `resources/views/pedidos`.
+- Funciones: listar y ver detalle.
+- Creación: se generan desde `cotizaciones.convertir`.
+- Regla de negocio: el pedido copia productos, cantidades, descuentos y precios pactados desde la cotización para conservar un snapshot aunque el catálogo cambie después.
+
+### Perfil Y Autenticación
+
+- Breeze provee login, registro, recuperación de contraseña, confirmación de contraseña, verificación de email y logout.
+- `ProfileController` permite editar información de perfil, actualizar contraseña y eliminar cuenta.
+
+## Servicios De Dominio
+
+| Servicio | Uso actual |
+| --- | --- |
+| `CotizacionTotals` | Calcula totales con nombres de campos usados por vistas de cotización |
+| `QuotationService` | Servicio disponible para recalcular totales, agregar/quitar líneas, aplicar descuentos, cambiar estados y marcar vencidas |
+| `ConversionService` | Servicio disponible para convertir una cotización a pedido dentro de una transacción |
+
+Nota técnica: `CotizacionController` actualmente contiene parte de la lógica de cálculo y conversión directamente. Si el proyecto crece, conviene consolidar esa lógica en `QuotationService` y `ConversionService` para evitar duplicación.
+
+## Flujo Manual Recomendado
+
+1. Registrar un usuario o ejecutar `php artisan db:seed` y entrar con `test@example.com` / `password`.
+2. Crear uno o más clientes desde `Clientes`.
+3. Crear productos activos desde `Catálogo`.
+4. Crear una cotización asociando cliente y productos.
+5. Cambiar la cotización a estado `aceptada`.
+6. Entrar al detalle de la cotización y usar `Convertir a pedido`.
+7. Revisar el pedido generado desde `Pedidos`.
+
+## Frontend
+
+- El layout autenticado está en `resources/views/layouts/app.blade.php`.
+- La navegación está en `resources/views/layouts/navigation.blade.php`.
+- Los assets se cargan con `@vite(['resources/css/app.css', 'resources/js/app.js'])`.
+- Alpine se inicializa en `resources/js/app.js`.
+- Axios se configura globalmente en `resources/js/bootstrap.js`.
+- Tailwind escanea `resources/views/**/*.blade.php`, vistas cacheadas y vistas de paginación de Laravel.
+
+## Testing Y Calidad
+
+Ejecutar toda la suite:
+
+```bash
+composer test
+```
+
+Ejecutar una prueba puntual:
+
+```bash
+php artisan test tests/Feature/ProfileTest.php
+php artisan test --filter=test_new_users_can_register
+```
+
+Revisar estilo PHP:
+
+```bash
+vendor/bin/pint --test
+```
+
+Corregir estilo PHP:
+
+```bash
+vendor/bin/pint
+```
+
+Compilar assets:
+
+```bash
+npm run build
+```
+
+## Observaciones Y Pendientes Detectados
+
+- `DatabaseSeeder` solo crea un usuario de prueba; todavía no hay seeders de clientes, productos, cotizaciones o pedidos.
+- Las pruebas actuales cubren principalmente Breeze, perfil y ejemplos base; faltan pruebas Feature para clientes, catálogo, cotizaciones, conversión y pedidos.
+- `app/Models/Catalogo.php` parece un modelo legado apuntando a una tabla `catalogo`; el CRUD actual usa `Product` y la tabla `products`.
+- El botón `+ Agregar línea` en la vista de creación de cotizaciones todavía no agrega líneas dinámicamente.
+- El campo `notas` aparece en vistas de cotización, pero no está persistido en la tabla `quotations` ni validado por el controlador.
+- La vista de creación de cotización conserva valores por defecto hardcodeados para folio y fechas, aunque el controlador construye una plantilla dinámica.
+- `ConversionService` valida convertibilidad usando `Quotation::isConvertible()`, pero la ruta actual de conversión implementa la conversión inline en `CotizacionController`.
+- No hay decremento de stock al convertir una cotización en pedido.
+- El módulo de pedidos no tiene edición, cancelación ni cambio de estado desde la interfaz.
+
+## Convenciones Del Proyecto
+
+- Las rutas, vistas y copy de dominio están en español: `clientes`, `catalogo`, `cotizaciones`, `pedidos`.
+- Los modelos y tablas principales están en inglés: `Client`, `Product`, `Quotation`, `Order`.
+- Mantener esa convención mixta mientras no se haga una refactorización completa.
+- En Laravel 12 el bootstrap principal está en `bootstrap/app.php`; no existe `app/Http/Kernel.php`.

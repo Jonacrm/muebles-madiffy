@@ -37,9 +37,15 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="rounded border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
-                                Editar
-                            </a>
+                            @if ($cotizacion['status'] === 'convertida')
+                                <button type="button" class="cursor-not-allowed rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-400" disabled>
+                                    Editar
+                                </button>
+                            @else
+                                <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="rounded border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
+                                    Editar
+                                </a>
+                            @endif
 
                             @if ($cotizacion['estado'] === 'Aceptada')
                                 <form action="{{ route('cotizaciones.convertir', $cotizacion['id']) }}" method="POST">

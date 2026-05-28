@@ -83,9 +83,15 @@
                                                     Ver
                                                 </a>
 
-                                                <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
-                                                    Editar
-                                                </a>
+                                                @if (($cotizacion['status'] ?? null) === 'convertida')
+                                                    <span class="text-gray-400 text-sm font-semibold cursor-not-allowed" aria-disabled="true">
+                                                        Editar
+                                                    </span>
+                                                @else
+                                                    <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
+                                                        Editar
+                                                    </a>
+                                                @endif
 
                                                 <form action="{{ route('cotizaciones.destroy', $cotizacion['id']) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta cotización?');">
                                                     @csrf

@@ -24,6 +24,14 @@ class CotizacionController extends Controller
         'vencida' => 'Vencida',
     ];
 
+    private const MANUAL_STATUS_VALUES = [
+        'borrador',
+        'enviada',
+        'aceptada',
+        'rechazada',
+        'vencida',
+    ];
+
     public function __construct(private readonly CotizacionTotals $totals) {}
 
     public function index(): View
@@ -90,9 +98,15 @@ class CotizacionController extends Controller
         ]);
     }
 
-    public function edit(string $cotizacion): View
+    public function edit(string $cotizacion): View|RedirectResponse
     {
         $quotation = Quotation::with(['client', 'user', 'items.product'])->findOrFail($cotizacion);
+
+        if ($quotation->status === 'convertida') {
+            return redirect()
+                ->route('cotizaciones.show', $quotation)
+                ->with('status', 'No se puede editar una cotización convertida.');
+        }
 
         return view('cotizaciones.edit', [
             'cotizacion' => $this->presentarCotizacion($quotation),
@@ -104,6 +118,13 @@ class CotizacionController extends Controller
     public function update(Request $request, string $cotizacion): RedirectResponse
     {
         $quotation = Quotation::findOrFail($cotizacion);
+
+        if ($quotation->status === 'convertida') {
+            return redirect()
+                ->route('cotizaciones.show', $quotation)
+                ->with('status', 'No se puede editar una cotización convertida.');
+        }
+
         $data = $this->validatedData($request, $quotation->id);
 
         DB::transaction(function () use ($quotation, $data): void {
@@ -197,7 +218,7 @@ class CotizacionController extends Controller
         return $request->validate([
             'folio' => ['required', 'string', 'max:255', Rule::unique('quotations', 'folio')->ignore($quotationId)],
             'client_id' => ['required', 'exists:clients,id'],
-            'status' => ['required', Rule::in(array_keys(self::STATUS_LABELS))],
+            'status' => ['required', Rule::in(self::MANUAL_STATUS_VALUES)],
             'discount_global' => ['nullable', 'numeric', 'min:0'],
             'expires_at' => ['nullable', 'date'],
             'fecha_emision' => ['nullable', 'date'],
