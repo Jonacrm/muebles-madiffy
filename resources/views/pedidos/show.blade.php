@@ -5,6 +5,15 @@
         </h2>
     </x-slot>
 
+    @php
+        $estadoClase = [
+            'Pendiente' => 'bg-amber-100 text-amber-700',
+            'Pagado' => 'bg-green-100 text-green-700',
+            'Enviado' => 'bg-blue-100 text-blue-700',
+            'Vencido' => 'bg-red-100 text-red-700',
+        ][$pedido['estado']] ?? 'bg-gray-100 text-gray-700';
+    @endphp
+
     <div class="py-12">
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
             @if (session('status'))
@@ -19,16 +28,40 @@
                         <div>
                             <div class="flex flex-wrap items-center gap-3">
                                 <h3 class="text-2xl font-bold text-indigo-900">{{ $pedido['folio'] }}</h3>
-                                <span class="inline-flex rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700">
+                                <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $estadoClase }}">
                                     {{ $pedido['estado'] }}
                                 </span>
                             </div>
                             <p class="mt-2 text-sm text-gray-600">{{ $pedido['snapshot'] }}</p>
                         </div>
 
-                        <a href="{{ route('cotizaciones.show', $pedido['cotizacion_id']) }}" class="rounded border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
-                            Ver cotización origen
-                        </a>
+                        <div class="flex flex-wrap gap-3">
+                            @if ($pedido['status'] === 'pendiente')
+                                <form action="{{ route('pedidos.estado', $pedido['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="pagado">
+                                    <button type="submit" class="rounded bg-green-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-800">
+                                        Marcar pagado
+                                    </button>
+                                </form>
+                            @endif
+
+                            @if ($pedido['status'] === 'pagado')
+                                <form action="{{ route('pedidos.estado', $pedido['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="enviado">
+                                    <button type="submit" class="rounded bg-blue-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-blue-800">
+                                        Marcar enviado
+                                    </button>
+                                </form>
+                            @endif
+
+                            <a href="{{ route('cotizaciones.show', $pedido['cotizacion_id']) }}" class="rounded border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
+                                Ver cotización origen
+                            </a>
+                        </div>
                     </div>
 
                     <div class="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -43,6 +76,10 @@
                         <div class="rounded-lg border border-gray-200 p-4">
                             <p class="text-sm text-gray-500">Fecha de pedido</p>
                             <p class="mt-1 font-semibold text-gray-900">{{ $pedido['fecha_pedido'] }}</p>
+                        </div>
+                        <div class="rounded-lg border border-gray-200 p-4">
+                            <p class="text-sm text-gray-500">Límite de pago</p>
+                            <p class="mt-1 font-semibold text-gray-900">{{ $pedido['expires_at'] ?? 'Sin vigencia' }}</p>
                         </div>
                         <div class="rounded-lg border border-gray-200 p-4">
                             <p class="text-sm text-gray-500">Total congelado</p>

@@ -34,12 +34,17 @@
 
                             <div>
                                 <label for="fecha_emision" class="block text-sm font-medium text-indigo-500">Fecha de emisión</label>
-                                <input type="date" name="fecha_emision" id="fecha_emision" value="{{ old('fecha_emision', '2026-05-26') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <input type="date" id="fecha_emision" value="{{ now()->toDateString() }}" class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" disabled>
                             </div>
 
-                            <div>
-                                <label for="expires_at" class="block text-sm font-medium text-indigo-500">Vigencia</label>
-                                <input type="date" name="expires_at" id="expires_at" value="{{ old('expires_at', '2026-06-09') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            <div x-data="{ days: '{{ old('validity_days', $cotizacion['validity_days']) }}', base: '{{ now()->toDateString() }}', expires() { const date = new Date(`${this.base}T00:00:00`); date.setDate(date.getDate() + Number(this.days)); return date.toISOString().slice(0, 10); } }">
+                                <label for="validity_days" class="block text-sm font-medium text-indigo-500">Vigencia</label>
+                                <select name="validity_days" id="validity_days" x-model="days" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                    <option value="3">3 días</option>
+                                    <option value="7">7 días</option>
+                                    <option value="14">14 días</option>
+                                </select>
+                                <p class="mt-1 text-xs text-gray-500">Caduca el <span x-text="expires()"></span></p>
                             </div>
 
                             <div>
@@ -49,11 +54,9 @@
                             </div>
 
                             <div>
-                                <label for="status" class="block text-sm font-medium text-indigo-500">Estado inicial</label>
-                                <select name="status" id="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
-                                    <option value="borrador" @selected(old('status', 'borrador') === 'borrador')>Borrador</option>
-                                    <option value="enviada" @selected(old('status') === 'enviada')>Enviada</option>
-                                </select>
+                                <label class="block text-sm font-medium text-indigo-500">Estado inicial</label>
+                                <input type="hidden" name="status" value="borrador">
+                                <div class="mt-1 rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-700">Borrador</div>
                             </div>
 
                         </div>
@@ -64,7 +67,7 @@
                     'productosIniciales' => $productos,
                     'lineasIniciales' => old('items', $cotizacion['lineas']),
                     'descuentoGlobalInicial' => old('discount_global', $cotizacion['discount_global'] ?? $cotizacion['descuento_global']),
-                    'notasIniciales' => old('notas', $cotizacion['notas']),
+                    'status' => $cotizacion['status'],
                 ], key('cotizacion-create-line-items'))
 
                 <div class="flex items-center justify-end">

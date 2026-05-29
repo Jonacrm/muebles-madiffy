@@ -15,6 +15,7 @@ class Order extends Model
         'discount_global',
         'tax',
         'total',
+        'expires_at',
     ];
 
     protected $casts = [
@@ -22,6 +23,7 @@ class Order extends Model
         'discount_global' => 'decimal:2',
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
+        'expires_at' => 'date',
     ];
 
     public function quotation()

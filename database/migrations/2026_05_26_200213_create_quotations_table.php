@@ -18,6 +18,7 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained('users');
             $table->enum('status', [
                 'borrador',
+                'creada',
                 'enviada',
                 'aceptada',
                 'convertida',
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->decimal('tax', 10, 2)->default(0);
             $table->decimal('total', 10, 2)->default(0);
             $table->date('expires_at')->nullable();
+            $table->unsignedSmallInteger('validity_days')->default(14);
             $table->timestamps();
         });
     }

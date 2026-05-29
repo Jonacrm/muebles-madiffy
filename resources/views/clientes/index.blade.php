@@ -27,6 +27,7 @@
                         <table class="min-w-full bg-white border border-gray-200">
                             <thead class="bg-gray-100">
                                 <tr>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">ID</th>
                                     <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Nombre</th>
                                     <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Correo</th>
                                     <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Teléfono</th>
@@ -38,6 +39,7 @@
                             <tbody>
                                 @forelse ($clientes as $cliente)
                                     <tr class="hover:bg-gray-50">
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $cliente->id }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-800">{{ $cliente->name }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $cliente->email ?? 'Sin correo' }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $cliente->phone ?? 'Sin teléfono' }}</td>
@@ -61,7 +63,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="py-6 px-4 text-center text-sm text-gray-500">
+                                        <td colspan="7" class="py-6 px-4 text-center text-sm text-gray-500">
                                             No hay clientes registrados.
                                         </td>
                                     </tr>

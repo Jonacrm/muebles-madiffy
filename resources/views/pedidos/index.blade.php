@@ -40,13 +40,22 @@
                             </thead>
                             <tbody>
                                 @forelse ($pedidos as $pedido)
+                                    @php
+                                        $estadoClase = [
+                                            'Pendiente' => 'bg-amber-100 text-amber-700',
+                                            'Pagado' => 'bg-green-100 text-green-700',
+                                            'Enviado' => 'bg-blue-100 text-blue-700',
+                                            'Vencido' => 'bg-red-100 text-red-700',
+                                        ][$pedido['estado']] ?? 'bg-gray-100 text-gray-700';
+                                    @endphp
+
                                     <tr class="hover:bg-gray-50">
                                         <td class="py-2 px-4 border-b text-sm font-semibold text-gray-800">{{ $pedido['folio'] }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $pedido['cliente'] }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $pedido['cotizacion_folio'] }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $pedido['fecha_pedido'] }}</td>
                                         <td class="py-2 px-4 border-b text-sm">
-                                            <span class="inline-flex rounded-full bg-indigo-100 px-2 py-1 text-xs font-semibold text-indigo-700">
+                                            <span class="inline-flex rounded-full px-2 py-1 text-xs font-semibold {{ $estadoClase }}">
                                                 {{ $pedido['estado'] }}
                                             </span>
                                         </td>

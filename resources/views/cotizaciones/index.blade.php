@@ -58,6 +58,7 @@
                                     @php
                                         $estadoClase = [
                                             'Borrador' => 'bg-gray-100 text-gray-700',
+                                            'Creada' => 'bg-slate-100 text-slate-700',
                                             'Enviada' => 'bg-blue-100 text-blue-700',
                                             'Aceptada' => 'bg-green-100 text-green-700',
                                             'Convertida' => 'bg-indigo-100 text-indigo-700',
@@ -83,7 +84,7 @@
                                                     Ver
                                                 </a>
 
-                                                @if (($cotizacion['status'] ?? null) === 'convertida')
+                                                @if (! in_array($cotizacion['status'] ?? null, ['borrador', 'enviada'], true))
                                                     <span class="text-gray-400 text-sm font-semibold cursor-not-allowed" aria-disabled="true">
                                                         Editar
                                                     </span>

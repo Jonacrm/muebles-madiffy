@@ -3,13 +3,37 @@
 namespace Tests\Feature;
 
 use App\Livewire\CotizacionLineItems;
+use App\Models\Product;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
 
 class CotizacionLineItemsTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_it_updates_product_data_and_totals_with_livewire(): void
     {
+        Product::create([
+            'id' => 1,
+            'sku' => 'MES-001',
+            'name' => 'Mesa',
+            'description' => 'Mesa de comedor',
+            'unit_price' => 1000,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
+        Product::create([
+            'id' => 2,
+            'sku' => 'SIL-001',
+            'name' => 'Silla',
+            'description' => 'Silla tapizada',
+            'unit_price' => 250,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
         $component = Livewire::test(CotizacionLineItems::class, [
             'productosIniciales' => [
                 [
@@ -53,6 +77,70 @@ class CotizacionLineItemsTest extends TestCase
         $this->assertSame(2, $lineas[0]['product_id']);
         $this->assertSame('Silla tapizada', $lineas[0]['descripcion']);
         $this->assertEquals(250.0, $lineas[0]['unit_price']);
+    }
+
+    public function test_draft_prices_refresh_from_catalog(): void
+    {
+        $product = Product::create([
+            'sku' => 'MES-002',
+            'name' => 'Mesa modelo 2',
+            'unit_price' => 100,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
+        $component = Livewire::test(CotizacionLineItems::class, [
+            'productosIniciales' => [$product],
+            'lineasIniciales' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 75,
+                    'line_discount' => 0,
+                ],
+            ],
+            'status' => 'borrador',
+        ]);
+
+        $component
+            ->assertSee('$100.00')
+            ->assertSee('cambió de $75.00 a $100.00');
+
+        $product->update(['unit_price' => 125]);
+
+        $component
+            ->call('refrescarPreciosDeCatalogo')
+            ->assertSee('$125.00')
+            ->assertSee('cambió de $75.00 a $125.00');
+    }
+
+    public function test_sent_existing_lines_keep_their_snapshot_price(): void
+    {
+        $product = Product::create([
+            'sku' => 'SIL-002',
+            'name' => 'Silla modelo 1',
+            'unit_price' => 10,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
+        $component = Livewire::test(CotizacionLineItems::class, [
+            'productosIniciales' => [$product],
+            'lineasIniciales' => [
+                [
+                    'id' => 15,
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 5,
+                    'line_discount' => 0,
+                ],
+            ],
+            'status' => 'enviada',
+        ]);
+
+        $component
+            ->assertSee('$5.00')
+            ->assertSee('Bloqueada');
     }
 
     public function test_it_can_add_and_remove_lines(): void

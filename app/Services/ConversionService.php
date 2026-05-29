@@ -15,7 +15,7 @@ class ConversionService
     public function convert(Quotation $quotation): Order
     {
         // 1. Validar que la cotización se puede convertir
-        if (!$quotation->isConvertible()) {
+        if (! $quotation->isConvertible()) {
             throw new \Exception(
                 "La cotización '{$quotation->folio}' no se puede convertir. 
                 Estado actual: {$quotation->status}."
@@ -27,25 +27,26 @@ class ConversionService
 
             // 3. Crear el pedido copiando los datos de la cotización
             $order = Order::create([
-                'quotation_id'    => $quotation->id,
-                'client_id'       => $quotation->client_id,
-                'user_id'         => $quotation->user_id,
-                'status'          => 'activo',
-                'subtotal'        => $quotation->subtotal,
+                'quotation_id' => $quotation->id,
+                'client_id' => $quotation->client_id,
+                'user_id' => $quotation->user_id,
+                'status' => 'pendiente',
+                'subtotal' => $quotation->subtotal,
                 'discount_global' => $quotation->discount_global,
-                'tax'             => $quotation->tax,
-                'total'           => $quotation->total,
+                'tax' => $quotation->tax,
+                'total' => $quotation->total,
+                'expires_at' => now()->addDays((int) $quotation->validity_days)->toDateString(),
             ]);
 
             // 4. Copiar cada línea con el precio congelado
             // OJO: se copia el precio de la LÍNEA, no del catálogo
             foreach ($quotation->items as $item) {
                 $order->items()->create([
-                    'product_id'    => $item->product_id,
-                    'quantity'      => $item->quantity,
-                    'unit_price'    => $item->unit_price,
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
                     'line_discount' => $item->line_discount,
-                    'subtotal'      => $item->subtotal,
+                    'subtotal' => $item->subtotal,
                 ]);
             }
 

@@ -22,8 +22,10 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('clientes', ClienteController::class);
     Route::resource('catalogo', CatalogoController::class);
+    Route::patch('cotizaciones/{cotizacion}/estado', [CotizacionController::class, 'cambiarEstado'])->name('cotizaciones.estado');
     Route::post('cotizaciones/{cotizacion}/convertir', [CotizacionController::class, 'convertir'])->name('cotizaciones.convertir');
     Route::resource('cotizaciones', CotizacionController::class)->parameters(['cotizaciones' => 'cotizacion']);
+    Route::patch('pedidos/{pedido}/estado', [PedidoController::class, 'cambiarEstado'])->name('pedidos.estado');
     Route::resource('pedidos', PedidoController::class)->only(['index', 'show']);
 });
 

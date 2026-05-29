@@ -36,12 +36,12 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label for="unit_price" class="block text-sm font-medium text-indigo-500">Precio unitario</label>
-                                <input type="number" step="0.01" name="unit_price" id="unit_price" value="{{ old('unit_price') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <input type="text" name="unit_price" id="unit_price" value="{{ old('unit_price', '0.00') }}" inputmode="decimal" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             </div>
 
                             <div>
                                 <label for="stock" class="block text-sm font-medium text-indigo-500">Stock inicial</label>
-                                <input type="number" name="stock" id="stock" value="{{ old('stock', 0) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <input type="number" name="stock" id="stock" value="{{ old('stock', 0) }}" min="0" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             </div>
                         </div>
 

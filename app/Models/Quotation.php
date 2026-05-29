@@ -16,6 +16,7 @@ class Quotation extends Model
         'tax',
         'total',
         'expires_at',
+        'validity_days',
     ];
 
     protected $casts = [
@@ -24,6 +25,7 @@ class Quotation extends Model
         'discount_global' => 'decimal:2',
         'tax' => 'decimal:2',
         'total' => 'decimal:2',
+        'validity_days' => 'integer',
     ];
 
     public function client()

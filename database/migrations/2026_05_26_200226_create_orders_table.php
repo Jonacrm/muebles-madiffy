@@ -16,11 +16,12 @@ return new class extends Migration
             $table->foreignId('quotation_id')->constrained('quotations')->unique();
             $table->foreignId('client_id')->constrained('clients');
             $table->foreignId('user_id')->constrained('users');
-            $table->enum('status', ['activo', 'entregado', 'cancelado'])->default('activo');
+            $table->enum('status', ['pendiente', 'pagado', 'enviado', 'vencido'])->default('pendiente');
             $table->decimal('subtotal', 10, 2);
             $table->decimal('discount_global', 10, 2)->default(0);
             $table->decimal('tax', 10, 2);
             $table->decimal('total', 10, 2);
+            $table->date('expires_at')->nullable();
             $table->timestamps();
         });
     }

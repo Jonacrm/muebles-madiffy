@@ -16,7 +16,8 @@
 
                         <div>
                             <label for="sku" class="block text-sm font-medium text-indigo-500">SKU</label>
-                            <input type="text" name="sku" id="sku" value="{{ old('sku', 'SKU-001') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                            <input type="text" id="sku" value="{{ $producto->sku ?? 'Sin SKU' }}" class="mt-1 block w-full border-gray-300 bg-gray-100 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" disabled>
+                            <p class="mt-1 text-xs text-gray-500">El SKU se bloquea después de crear el producto.</p>
                         </div>
 
                         <div>
@@ -37,12 +38,12 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label for="unit_price" class="block text-sm font-medium text-indigo-500">Precio unitario</label>
-                                <input type="number" step="0.01" name="unit_price" id="unit_price" value="{{ old('unit_price', $producto->unit_price ?? '4500.00') }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <input type="text" name="unit_price" id="unit_price" value="{{ old('unit_price', number_format((float) ($producto->unit_price ?? 0), 2)) }}" inputmode="decimal" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             </div>
 
                             <div>
                                 <label for="stock" class="block text-sm font-medium text-indigo-500">Stock</label>
-                                <input type="number" name="stock" id="stock" value="{{ old('stock', $producto->stock ?? 10) }}" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <input type="number" name="stock" id="stock" value="{{ old('stock', $producto->stock ?? 0) }}" min="0" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                             </div>
                         </div>
 

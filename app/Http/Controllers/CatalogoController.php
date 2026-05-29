@@ -70,6 +70,7 @@ class CatalogoController extends Controller
         $producto = Product::findOrFail($id);
         $data = $this->validatedData($request, $producto->id);
         $data['active'] = $request->boolean('active');
+        unset($data['sku']);
 
         $producto->update($data);
 
@@ -97,14 +98,29 @@ class CatalogoController extends Controller
      */
     private function validatedData(Request $request, ?int $productId = null): array
     {
+        $request->merge([
+            'unit_price' => $this->normalizarNumero($request->input('unit_price', 0)),
+            'stock' => (int) $this->normalizarNumero($request->input('stock', 0)),
+        ]);
+
         return $request->validate([
-            'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')->ignore($productId)],
             'name' => ['required', 'string', 'max:255'],
             'material' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'unit_price' => ['required', 'numeric', 'min:0'],
             'stock' => ['nullable', 'integer', 'min:0'],
             'active' => ['nullable', 'boolean'],
-        ]);
+        ] + ($productId === null ? [
+            'sku' => ['nullable', 'string', 'max:255', Rule::unique('products', 'sku')],
+        ] : []));
+    }
+
+    private function normalizarNumero(mixed $value): float
+    {
+        if ($value === null || $value === '') {
+            return 0;
+        }
+
+        return round(max((float) str_replace(',', '', (string) $value), 0), 2);
     }
 }

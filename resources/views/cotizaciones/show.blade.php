@@ -8,6 +8,7 @@
     @php
         $estadoClase = [
             'Borrador' => 'bg-gray-100 text-gray-700',
+            'Creada' => 'bg-slate-100 text-slate-700',
             'Enviada' => 'bg-blue-100 text-blue-700',
             'Aceptada' => 'bg-green-100 text-green-700',
             'Convertida' => 'bg-indigo-100 text-indigo-700',
@@ -37,7 +38,7 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            @if ($cotizacion['status'] === 'convertida')
+                            @if (! in_array($cotizacion['status'], ['borrador', 'enviada'], true))
                                 <button type="button" class="cursor-not-allowed rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-400" disabled>
                                     Editar
                                 </button>
@@ -47,6 +48,57 @@
                                 </a>
                             @endif
 
+                            @if ($cotizacion['status'] === 'borrador')
+                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="creada">
+                                    <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
+                                        Crear
+                                    </button>
+                                </form>
+                            @endif
+
+                            @if ($cotizacion['status'] === 'creada')
+                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="enviada">
+                                    <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
+                                        Enviar
+                                    </button>
+                                </form>
+
+                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="borrador">
+                                    <button type="submit" class="rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                        Regresar a borrador
+                                    </button>
+                                </form>
+                            @endif
+
+                            @if ($cotizacion['status'] === 'enviada')
+                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="aceptada">
+                                    <button type="submit" class="rounded bg-green-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-800">
+                                        Aceptar
+                                    </button>
+                                </form>
+
+                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="rechazada">
+                                    <button type="submit" class="rounded border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                                        Rechazar
+                                    </button>
+                                </form>
+                            @endif
+
                             @if ($cotizacion['estado'] === 'Aceptada')
                                 <form action="{{ route('cotizaciones.convertir', $cotizacion['id']) }}" method="POST">
                                     @csrf
@@ -54,10 +106,6 @@
                                         Convertir a pedido
                                     </button>
                                 </form>
-                            @else
-                                <button type="button" class="cursor-not-allowed rounded bg-gray-200 px-4 py-2 text-sm font-bold text-gray-500" disabled>
-                                    Convertir a pedido
-                                </button>
                             @endif
                         </div>
                     </div>
@@ -122,9 +170,9 @@
             <div class="grid gap-6 lg:grid-cols-3">
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2 min-h-48">
                     <div class="p-6">
-                        <h3 class="text-lg font-bold text-indigo-800">Notas</h3>
+                        <h3 class="text-lg font-bold text-indigo-800">Condiciones de precios</h3>
                         <p class="mt-4 text-sm text-gray-600">
-                            {{ $cotizacion['notas'] ?: 'Sin notas registradas.' }}
+                            Los precios mostrados corresponden al snapshot guardado en la cotización.
                         </p>
                     </div>
                 </div>
