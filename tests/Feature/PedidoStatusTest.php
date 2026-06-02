@@ -15,17 +15,10 @@ class PedidoStatusTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_pending_order_can_be_marked_paid_and_paid_order_can_be_marked_sent(): void
+    public function test_pending_order_can_be_marked_sent(): void
     {
         $user = User::factory()->create();
         $order = $this->createOrder($user, 'pendiente');
-
-        $this
-            ->actingAs($user)
-            ->patch(route('pedidos.estado', $order), ['status' => 'pagado'])
-            ->assertRedirect(route('pedidos.show', $order));
-
-        $this->assertSame('pagado', $order->fresh()->status);
 
         $this
             ->actingAs($user)
@@ -46,14 +39,14 @@ class PedidoStatusTest extends TestCase
         $this->assertSame(5, $product->fresh()->stock);
     }
 
-    public function test_paid_order_does_not_expire_by_payment_deadline(): void
+    public function test_sent_order_does_not_expire_by_expiration_deadline(): void
     {
         $user = User::factory()->create();
-        [$order, $product] = $this->createOrder($user, 'pagado', 3, 2, now()->subDay()->toDateString());
+        [$order, $product] = $this->createOrder($user, 'enviado', 3, 2, now()->subDay()->toDateString());
 
         Artisan::call('pedidos:vencer');
 
-        $this->assertSame('pagado', $order->fresh()->status);
+        $this->assertSame('enviado', $order->fresh()->status);
         $this->assertSame(2, $product->fresh()->stock);
     }
 
@@ -71,6 +64,67 @@ class PedidoStatusTest extends TestCase
 
         $this->assertSame('pendiente', $order->status);
         $this->assertSame(now()->addDays(7)->toDateString(), $order->expires_at->toDateString());
+    }
+
+    public function test_order_snapshot_stays_sealed_after_catalog_client_and_quote_changes(): void
+    {
+        $user = User::factory()->create();
+        $quotation = $this->createAcceptedQuotation($user, 7);
+        $product = $quotation->items()->first()->product;
+        $client = $quotation->client;
+
+        $this
+            ->actingAs($user)
+            ->post(route('cotizaciones.convertir', $quotation))
+            ->assertRedirect();
+
+        $order = Order::with('items')->first();
+
+        $product->update([
+            'sku' => 'QUOTE-PRD-CHANGED',
+            'name' => 'Producto actualizado',
+            'material' => 'Material actualizado',
+            'description' => 'Descripción actualizada',
+            'unit_price' => 999,
+        ]);
+        $client->update([
+            'name' => 'Cliente actualizado',
+            'rfc' => 'RFC-NUEVO',
+        ]);
+        $quotation->update(['folio' => 'COT-CONVERT-CHANGED']);
+
+        $this->assertDatabaseHas('orders', [
+            'id' => $order->id,
+            'quotation_folio' => 'COT-CONVERT-001',
+            'client_name' => 'Cliente de prueba',
+            'client_rfc' => 'RFC-ORIGINAL',
+        ]);
+        $this->assertDatabaseHas('order_items', [
+            'order_id' => $order->id,
+            'product_sku' => 'QUOTE-PRD-001',
+            'product_name' => 'Producto cotizado',
+            'product_material' => 'Madera original',
+            'product_description' => 'Descripción original',
+            'unit_price' => 100,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('pedidos.show', $order))
+            ->assertOk()
+            ->assertSee('COT-CONVERT-001')
+            ->assertSee('Cliente de prueba')
+            ->assertSee('RFC-ORIGINAL')
+            ->assertSee('QUOTE-PRD-001')
+            ->assertSee('Producto cotizado')
+            ->assertSee('Madera original')
+            ->assertSee('Descripción original')
+            ->assertDontSee('COT-CONVERT-CHANGED')
+            ->assertDontSee('Cliente actualizado')
+            ->assertDontSee('QUOTE-PRD-CHANGED')
+            ->assertDontSee('Producto actualizado')
+            ->assertDontSee('Material actualizado')
+            ->assertDontSee('Descripción actualizada');
     }
 
     private function createOrder(User $user, string $status, int $quantity = 1, int $stock = 10, ?string $expiresAt = null): array|Order
@@ -120,10 +174,18 @@ class PedidoStatusTest extends TestCase
 
     private function createAcceptedQuotation(User $user, int $validityDays): Quotation
     {
-        $client = Client::create(['name' => 'Cliente de prueba']);
+        $client = Client::create([
+            'name' => 'Cliente de prueba',
+            'email' => 'cliente@example.com',
+            'phone' => '6620000000',
+            'rfc' => 'RFC-ORIGINAL',
+            'address' => 'Dirección original',
+        ]);
         $product = Product::create([
             'sku' => 'QUOTE-PRD-001',
             'name' => 'Producto cotizado',
+            'material' => 'Madera original',
+            'description' => 'Descripción original',
             'unit_price' => 100,
             'stock' => 10,
             'active' => true,

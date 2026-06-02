@@ -70,10 +70,27 @@ class CotizacionPricingStockTest extends TestCase
         $this->assertSame(['5.00', '10.00'], $prices);
     }
 
-    public function test_sending_a_created_quote_decrements_stock(): void
+    public function test_creating_a_draft_quote_decrements_stock(): void
     {
         $user = User::factory()->create();
-        [$quotation, $product] = $this->createQuotation($user, 'creada', 100, 3, 7);
+        [$quotation, $product] = $this->createQuotation($user, 'borrador', 100, 3, 7);
+
+        $this
+            ->actingAs($user)
+            ->patch(route('cotizaciones.estado', $quotation), [
+                'status' => 'creada',
+            ])
+            ->assertRedirect(route('cotizaciones.show', $quotation));
+
+        $this->assertSame('creada', $quotation->fresh()->status);
+        $this->assertSame(4, $product->fresh()->stock);
+    }
+
+    public function test_sending_a_created_quote_does_not_decrement_stock_again(): void
+    {
+        $user = User::factory()->create();
+        [$quotation, $product] = $this->createQuotation($user, 'creada', 100, 3, 4);
+        $product->update(['unit_price' => 125]);
 
         $this
             ->actingAs($user)
@@ -84,23 +101,58 @@ class CotizacionPricingStockTest extends TestCase
 
         $this->assertSame('enviada', $quotation->fresh()->status);
         $this->assertSame(4, $product->fresh()->stock);
+        $this->assertSame('125.00', $quotation->fresh()->items()->first()->unit_price);
     }
 
-    public function test_sending_a_created_quote_is_blocked_when_stock_is_insufficient(): void
+    public function test_returning_created_quote_to_draft_returns_stock(): void
     {
         $user = User::factory()->create();
-        [$quotation, $product] = $this->createQuotation($user, 'creada', 100, 10, 7);
+        [$quotation, $product] = $this->createQuotation($user, 'creada', 100, 3, 4);
+        $product->update(['unit_price' => 125]);
+
+        $this
+            ->actingAs($user)
+            ->patch(route('cotizaciones.estado', $quotation), [
+                'status' => 'borrador',
+            ])
+            ->assertRedirect(route('cotizaciones.show', $quotation))
+            ->assertSessionHas('cambios_precio');
+
+        $this->assertSame('borrador', $quotation->fresh()->status);
+        $this->assertSame(7, $product->fresh()->stock);
+        $this->assertSame('125.00', $quotation->fresh()->items()->first()->unit_price);
+    }
+
+    public function test_created_quote_detail_shows_catalog_price_change_warning(): void
+    {
+        $user = User::factory()->create();
+        [$quotation, $product] = $this->createQuotation($user, 'creada', 100, 1, 4);
+
+        $product->update(['unit_price' => 125]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('cotizaciones.show', $quotation))
+            ->assertOk()
+            ->assertSee('$125.00')
+            ->assertSee('cambió de $100.00 a $125.00', false);
+    }
+
+    public function test_creating_a_quote_is_blocked_when_stock_is_insufficient(): void
+    {
+        $user = User::factory()->create();
+        [$quotation, $product] = $this->createQuotation($user, 'borrador', 100, 10, 7);
 
         $this
             ->actingAs($user)
             ->from(route('cotizaciones.edit', $quotation))
             ->patch(route('cotizaciones.estado', $quotation), [
-                'status' => 'enviada',
+                'status' => 'creada',
             ])
             ->assertRedirect(route('cotizaciones.edit', $quotation))
             ->assertSessionHasErrors('items');
 
-        $this->assertSame('creada', $quotation->fresh()->status);
+        $this->assertSame('borrador', $quotation->fresh()->status);
         $this->assertSame(7, $product->fresh()->stock);
     }
 

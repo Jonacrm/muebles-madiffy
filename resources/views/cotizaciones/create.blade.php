@@ -19,7 +19,7 @@
                         <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                             <div>
                                 <label for="folio" class="block text-sm font-medium text-indigo-500">Folio</label>
-                                <input type="text" name="folio" id="folio" value="{{ old('folio', 'COT-2026-007') }}" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                <input type="text" name="folio" id="folio" value="{{ old('folio', $cotizacion['folio']) }}" class="mt-1 block w-full rounded-md border-gray-300 bg-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" readonly required>
                             </div>
 
                             <div>

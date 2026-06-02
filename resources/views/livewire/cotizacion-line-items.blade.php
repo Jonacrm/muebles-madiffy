@@ -1,4 +1,4 @@
-<div class="space-y-6" @if ($status === 'borrador') wire:poll.5s="refrescarPreciosDeCatalogo" @endif>
+<div class="space-y-6" @if (in_array($status, ['borrador', 'creada'], true)) wire:poll.5s="refrescarPreciosDeCatalogo" @endif>
     <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
         <div class="p-6">
             <div class="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -38,7 +38,7 @@
                                         <select name="items[{{ $index }}][product_id]" wire:change="seleccionarProducto({{ $index }}, $event.target.value)" class="min-w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                             <option value="">Selecciona un producto</option>
                                             @foreach ($productos as $producto)
-                                                <option value="{{ $producto['id'] }}" @selected((string) ($linea['product_id'] ?? '') === (string) $producto['id'])>{{ $producto['name'] }}</option>
+                                                <option value="{{ $producto['id'] }}" @selected((string) ($linea['product_id'] ?? '') === (string) $producto['id'])>{{ trim(($producto['sku'] ? $producto['sku'].' ' : '').$producto['name']) }}</option>
                                             @endforeach
                                         </select>
                                     @endif
@@ -102,11 +102,11 @@
             <div class="p-6">
                 <h3 class="text-lg font-bold text-indigo-800">Cambios de precio</h3>
 
-                @if ($status === 'borrador')
+                @if (in_array($status, ['borrador', 'creada'], true))
                     @php($cambios = $this->cambiosPrecio())
 
                     @if ($cambios === [])
-                        <p class="mt-4 text-sm text-gray-600">No hay cambios de precio del catálogo para esta cotización en borrador.</p>
+                        <p class="mt-4 text-sm text-gray-600">No hay cambios de precio del catálogo para esta cotización.</p>
                     @else
                         <ul class="mt-4 space-y-2 text-sm text-gray-700">
                             @foreach ($cambios as $cambio)

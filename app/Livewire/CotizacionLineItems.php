@@ -90,7 +90,7 @@ class CotizacionLineItems extends Component
 
     public function refrescarPreciosDeCatalogo(): void
     {
-        if ($this->status !== 'borrador') {
+        if (! in_array($this->status, ['borrador', 'creada'], true)) {
             return;
         }
 
@@ -115,12 +115,15 @@ class CotizacionLineItems extends Component
             }
 
             $productoNormalizado = $this->normalizarProducto($producto);
-            $this->lineas[$index]['sku'] = $productoNormalizado['sku'];
-            $this->lineas[$index]['producto'] = $productoNormalizado['name'];
-            $this->lineas[$index]['descripcion'] = $productoNormalizado['description'];
-            $this->lineas[$index]['unit_price'] = $productoNormalizado['unit_price'];
             $this->lineas[$index]['precio_catalogo'] = $productoNormalizado['unit_price'];
             $this->lineas[$index]['stock'] = $productoNormalizado['stock'];
+
+            if (in_array($this->status, ['borrador', 'creada'], true)) {
+                $this->lineas[$index]['sku'] = $productoNormalizado['sku'];
+                $this->lineas[$index]['producto'] = $productoNormalizado['name'];
+                $this->lineas[$index]['descripcion'] = $productoNormalizado['description'];
+                $this->lineas[$index]['unit_price'] = $productoNormalizado['unit_price'];
+            }
         }
     }
 
@@ -160,7 +163,7 @@ class CotizacionLineItems extends Component
 
     public function cambiosPrecio(): array
     {
-        if ($this->status !== 'borrador') {
+        if (! in_array($this->status, ['borrador', 'creada'], true)) {
             return [];
         }
 
@@ -197,7 +200,7 @@ class CotizacionLineItems extends Component
         $cantidad = (int) ($linea['quantity'] ?? $linea['cantidad'] ?? 1);
         $precioCotizado = $linea['unit_price'] ?? $linea['precio_unitario'] ?? null;
         $precioCatalogo = $producto['unit_price'] ?? $precioCotizado ?? 0;
-        $precioUnitario = $this->status === 'borrador'
+        $precioUnitario = in_array($this->status, ['borrador', 'creada'], true)
             ? $precioCatalogo
             : ($precioCotizado ?? $precioCatalogo);
         $descuentoLinea = $linea['line_discount'] ?? $linea['descuento_linea'] ?? 0;

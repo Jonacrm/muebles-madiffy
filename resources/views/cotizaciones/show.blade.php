@@ -15,6 +15,7 @@
             'Rechazada' => 'bg-red-100 text-red-700',
             'Vencida' => 'bg-amber-100 text-amber-700',
         ][$cotizacion['estado']] ?? 'bg-gray-100 text-gray-700';
+        $cambiosPrecio = session('cambios_precio', $cotizacion['cambios_precio'] ?? []);
     @endphp
 
     <div class="py-12">
@@ -171,9 +172,20 @@
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2 min-h-48">
                     <div class="p-6">
                         <h3 class="text-lg font-bold text-indigo-800">Condiciones de precios</h3>
-                        <p class="mt-4 text-sm text-gray-600">
-                            Los precios mostrados corresponden al snapshot guardado en la cotización.
-                        </p>
+
+                        @if ($cambiosPrecio === [])
+                            <p class="mt-4 text-sm text-gray-600">
+                                Los precios mostrados corresponden al snapshot guardado en la cotización.
+                            </p>
+                        @else
+                            <ul class="mt-4 space-y-2 text-sm text-gray-700">
+                                @foreach ($cambiosPrecio as $cambio)
+                                    <li class="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                                        {{ $cambio['producto'] }} cambió de ${{ number_format($cambio['precio_anterior'], 2) }} a ${{ number_format($cambio['precio_actual'], 2) }} en el catálogo.
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
                     </div>
                 </div>
 

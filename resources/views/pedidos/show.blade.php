@@ -8,7 +8,6 @@
     @php
         $estadoClase = [
             'Pendiente' => 'bg-amber-100 text-amber-700',
-            'Pagado' => 'bg-green-100 text-green-700',
             'Enviado' => 'bg-blue-100 text-blue-700',
             'Vencido' => 'bg-red-100 text-red-700',
         ][$pedido['estado']] ?? 'bg-gray-100 text-gray-700';
@@ -40,17 +39,6 @@
                                 <form action="{{ route('pedidos.estado', $pedido['id']) }}" method="POST">
                                     @csrf
                                     @method('PATCH')
-                                    <input type="hidden" name="status" value="pagado">
-                                    <button type="submit" class="rounded bg-green-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-800">
-                                        Marcar pagado
-                                    </button>
-                                </form>
-                            @endif
-
-                            @if ($pedido['status'] === 'pagado')
-                                <form action="{{ route('pedidos.estado', $pedido['id']) }}" method="POST">
-                                    @csrf
-                                    @method('PATCH')
                                     <input type="hidden" name="status" value="enviado">
                                     <button type="submit" class="rounded bg-blue-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-blue-800">
                                         Marcar enviado
@@ -68,6 +56,9 @@
                         <div class="rounded-lg border border-gray-200 p-4">
                             <p class="text-sm text-gray-500">Cliente</p>
                             <p class="mt-1 font-semibold text-gray-900">{{ $pedido['cliente'] }}</p>
+                            @if ($pedido['cliente_rfc'])
+                                <p class="text-sm text-gray-500">{{ $pedido['cliente_rfc'] }}</p>
+                            @endif
                         </div>
                         <div class="rounded-lg border border-gray-200 p-4">
                             <p class="text-sm text-gray-500">Cotización origen</p>
@@ -76,10 +67,6 @@
                         <div class="rounded-lg border border-gray-200 p-4">
                             <p class="text-sm text-gray-500">Fecha de pedido</p>
                             <p class="mt-1 font-semibold text-gray-900">{{ $pedido['fecha_pedido'] }}</p>
-                        </div>
-                        <div class="rounded-lg border border-gray-200 p-4">
-                            <p class="text-sm text-gray-500">Límite de pago</p>
-                            <p class="mt-1 font-semibold text-gray-900">{{ $pedido['expires_at'] ?? 'Sin vigencia' }}</p>
                         </div>
                         <div class="rounded-lg border border-gray-200 p-4">
                             <p class="text-sm text-gray-500">Total congelado</p>
@@ -103,6 +90,7 @@
                                 <tr>
                                     <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">SKU</th>
                                     <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Producto</th>
+                                    <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Material</th>
                                     <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Descripción</th>
                                     <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Cantidad</th>
                                     <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Precio pactado</th>
@@ -115,6 +103,7 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $linea['sku'] }}</td>
                                         <td class="py-2 px-4 border-b text-sm font-semibold text-gray-800">{{ $linea['producto'] }}</td>
+                                        <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $linea['material'] }}</td>
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $linea['descripcion'] }}</td>
                                         <td class="py-2 px-4 border-b text-right text-sm text-gray-600">{{ $linea['cantidad'] }}</td>
                                         <td class="py-2 px-4 border-b text-right text-sm text-gray-600">${{ number_format($linea['precio_unitario'], 2) }}</td>
@@ -132,7 +121,7 @@
                 <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg lg:col-span-2">
                     <div class="p-6">
                         <h3 class="text-lg font-bold text-indigo-800">Snapshot de precios</h3>
-                        <p class="mt-2 text-sm text-gray-600">Este pedido conserva los productos, cantidades, descuentos y precios pactados al convertir la cotización.</p>
+                        <p class="mt-2 text-sm text-gray-600">Este pedido conserva los datos de cliente, productos, cantidades, descuentos y precios pactados al convertir la cotización.</p>
                     </div>
                 </div>
 

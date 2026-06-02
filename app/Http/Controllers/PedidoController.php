@@ -13,7 +13,6 @@ class PedidoController extends Controller
 {
     private const STATUS_LABELS = [
         'pendiente' => 'Pendiente',
-        'pagado' => 'Pagado',
         'enviado' => 'Enviado',
         'vencido' => 'Vencido',
     ];
@@ -35,7 +34,7 @@ class PedidoController extends Controller
     {
         $this->vencimiento->vencerExpirados();
 
-        $order = Order::with(['client', 'quotation', 'items.product'])->findOrFail($pedido);
+        $order = Order::with(['client', 'quotation', 'user', 'items.product'])->findOrFail($pedido);
 
         return view('pedidos.show', [
             'pedido' => $this->presentarPedido($order),
@@ -48,7 +47,7 @@ class PedidoController extends Controller
 
         $order = Order::findOrFail($pedido);
         $data = $request->validate([
-            'status' => ['required', Rule::in(['pagado', 'enviado'])],
+            'status' => ['required', Rule::in(['enviado'])],
         ]);
 
         if (! $this->transicionPermitida($order->status, $data['status'])) {
@@ -71,9 +70,10 @@ class PedidoController extends Controller
     {
         $lineas = $withLines
             ? $order->items->map(fn ($item): array => [
-                'sku' => $item->product?->sku,
-                'producto' => $item->product?->name ?? 'Producto eliminado',
-                'descripcion' => $item->product?->description,
+                'sku' => $item->product_sku ?? $item->product?->sku,
+                'producto' => $item->product_name ?? $item->product?->name ?? 'Producto eliminado',
+                'material' => $item->product_material ?? $item->product?->material,
+                'descripcion' => $item->product_description ?? $item->product?->description,
                 'cantidad' => $item->quantity,
                 'precio_unitario' => (float) $item->unit_price,
                 'descuento_linea' => (float) $item->line_discount,
@@ -88,13 +88,18 @@ class PedidoController extends Controller
             'id' => $order->id,
             'folio' => sprintf('PED-%s-%03d', $order->created_at?->format('Y') ?? now()->year, $order->id),
             'cotizacion_id' => $order->quotation_id,
-            'cotizacion_folio' => $order->quotation?->folio ?? 'Sin cotización',
-            'cliente' => $order->client?->name ?? 'Cliente no disponible',
+            'cotizacion_folio' => $order->quotation_folio ?? $order->quotation?->folio ?? 'Sin cotización',
+            'cliente' => $order->client_name ?? $order->client?->name ?? 'Cliente no disponible',
+            'cliente_email' => $order->client_email ?? $order->client?->email,
+            'cliente_phone' => $order->client_phone ?? $order->client?->phone,
+            'cliente_rfc' => $order->client_rfc ?? $order->client?->rfc,
+            'cliente_address' => $order->client_address ?? $order->client?->address,
+            'vendedor' => $order->seller_name ?? $order->user?->name,
             'fecha_pedido' => $order->created_at?->format('Y-m-d'),
             'status' => $order->status,
             'estado' => self::STATUS_LABELS[$order->status] ?? ucfirst($order->status),
             'expires_at' => $order->expires_at?->format('Y-m-d'),
-            'snapshot' => 'Este pedido copia los conceptos y precios pactados de la cotización; no depende del precio actual del catálogo.',
+            'snapshot' => 'Este pedido conserva los datos pactados al convertir la cotización; no depende de cambios posteriores en clientes ni catálogo.',
             'lineas' => $lineas,
             'subtotal' => $subtotal,
             'descuento_global' => $discountGlobal,
@@ -107,8 +112,7 @@ class PedidoController extends Controller
     private function transicionPermitida(string $oldStatus, string $newStatus): bool
     {
         return match ($oldStatus) {
-            'pendiente' => $newStatus === 'pagado',
-            'pagado' => $newStatus === 'enviado',
+            'pendiente' => $newStatus === 'enviado',
             default => false,
         };
     }

@@ -14,6 +14,8 @@ class ConversionService
      */
     public function convert(Quotation $quotation): Order
     {
+        $quotation->loadMissing(['client', 'user', 'items.product']);
+
         // 1. Validar que la cotización se puede convertir
         if (! $quotation->isConvertible()) {
             throw new \Exception(
@@ -30,6 +32,13 @@ class ConversionService
                 'quotation_id' => $quotation->id,
                 'client_id' => $quotation->client_id,
                 'user_id' => $quotation->user_id,
+                'quotation_folio' => $quotation->folio,
+                'client_name' => $quotation->client?->name,
+                'client_email' => $quotation->client?->email,
+                'client_phone' => $quotation->client?->phone,
+                'client_rfc' => $quotation->client?->rfc,
+                'client_address' => $quotation->client?->address,
+                'seller_name' => $quotation->user?->name,
                 'status' => 'pendiente',
                 'subtotal' => $quotation->subtotal,
                 'discount_global' => $quotation->discount_global,
@@ -43,6 +52,10 @@ class ConversionService
             foreach ($quotation->items as $item) {
                 $order->items()->create([
                     'product_id' => $item->product_id,
+                    'product_sku' => $item->product?->sku,
+                    'product_name' => $item->product?->name,
+                    'product_material' => $item->product?->material,
+                    'product_description' => $item->product?->description,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,
                     'line_discount' => $item->line_discount,

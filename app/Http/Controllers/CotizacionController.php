@@ -71,6 +71,8 @@ class CotizacionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        $request->merge(['folio' => $this->siguienteFolio()]);
+
         $data = $this->validatedData($request);
         $data['status'] = 'borrador';
 
@@ -193,7 +195,7 @@ class CotizacionController extends Controller
     {
         $this->vencimiento->vencerExpiradas();
 
-        $quotation = Quotation::with(['items', 'order'])->findOrFail($cotizacion);
+        $quotation = Quotation::with(['client', 'user', 'items.product', 'order'])->findOrFail($cotizacion);
 
         if ($quotation->order) {
             return redirect()->route('pedidos.show', $quotation->order)->with('status', 'Esta cotización ya tiene un pedido generado.');
@@ -208,6 +210,13 @@ class CotizacionController extends Controller
                 'quotation_id' => $quotation->id,
                 'client_id' => $quotation->client_id,
                 'user_id' => $quotation->user_id,
+                'quotation_folio' => $quotation->folio,
+                'client_name' => $quotation->client?->name,
+                'client_email' => $quotation->client?->email,
+                'client_phone' => $quotation->client?->phone,
+                'client_rfc' => $quotation->client?->rfc,
+                'client_address' => $quotation->client?->address,
+                'seller_name' => $quotation->user?->name,
                 'status' => 'pendiente',
                 'subtotal' => $quotation->subtotal,
                 'discount_global' => $quotation->discount_global,
@@ -219,6 +228,10 @@ class CotizacionController extends Controller
             foreach ($quotation->items as $item) {
                 $order->items()->create([
                     'product_id' => $item->product_id,
+                    'product_sku' => $item->product?->sku,
+                    'product_name' => $item->product?->name,
+                    'product_material' => $item->product?->material,
+                    'product_description' => $item->product?->description,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,
                     'line_discount' => $item->line_discount,
@@ -242,6 +255,9 @@ class CotizacionController extends Controller
         $data = $request->validate([
             'status' => ['required', Rule::in(['borrador', 'creada', 'enviada', 'aceptada', 'rechazada'])],
         ]);
+        $cambiosPrecio = $this->debeActualizarPreciosEnTransicion($quotation->status, $data['status'])
+            ? $this->detectarCambiosPrecio($this->itemsDesdeCotizacion($quotation))
+            : [];
 
         if (! $this->transicionPermitida($quotation->status, $data['status'])) {
             return redirect()->route('cotizaciones.show', $quotation)->with('status', 'La transición de estado solicitada no está permitida.');
@@ -279,7 +295,8 @@ class CotizacionController extends Controller
 
         return redirect()
             ->route('cotizaciones.show', $quotation)
-            ->with('status', 'Estado de cotización actualizado correctamente.');
+            ->with('status', 'Estado de cotización actualizado correctamente.')
+            ->with('cambios_precio', $cambiosPrecio);
     }
 
     /**
@@ -330,7 +347,7 @@ class CotizacionController extends Controller
         $lineas = array_map(function (array $item) use ($products, $existingItems, $quotation): array {
             $existingItem = ! empty($item['id']) ? $existingItems->get((int) $item['id']) : null;
 
-            if ($quotation?->status !== 'borrador' && $existingItem) {
+            if ($quotation && ! in_array($quotation->status, ['borrador', 'creada'], true) && $existingItem) {
                 $productId = (int) $existingItem->product_id;
                 $quantity = (int) $existingItem->quantity;
                 $unitPrice = (float) $existingItem->unit_price;
@@ -410,11 +427,15 @@ class CotizacionController extends Controller
      */
     private function validarStockDisponible(array $items, string $newStatus, ?Quotation $quotation = null): void
     {
-        if (! in_array($newStatus, ['borrador', 'enviada', 'aceptada'], true)) {
+        if (! in_array($newStatus, ['creada', 'enviada', 'aceptada'], true)) {
             return;
         }
 
         if ($newStatus === 'aceptada' && $quotation?->status === 'enviada') {
+            return;
+        }
+
+        if ($newStatus === 'enviada' && $quotation?->status === 'creada') {
             return;
         }
 
@@ -459,13 +480,16 @@ class CotizacionController extends Controller
      */
     private function aplicarMovimientoStock(?string $oldStatus, string $newStatus, array $items): void
     {
-        if (! in_array($oldStatus, ['enviada', 'aceptada'], true) && $newStatus === 'enviada') {
+        $oldStatusReservesStock = in_array($oldStatus, ['creada', 'enviada', 'aceptada'], true);
+        $newStatusReservesStock = in_array($newStatus, ['creada', 'enviada', 'aceptada', 'convertida'], true);
+
+        if (! $oldStatusReservesStock && $newStatusReservesStock) {
             $this->ajustarStock($items, -1);
 
             return;
         }
 
-        if (in_array($oldStatus, ['enviada', 'aceptada'], true) && in_array($newStatus, ['rechazada', 'vencida'], true)) {
+        if ($oldStatusReservesStock && ! $newStatusReservesStock) {
             $this->ajustarStock($items, 1);
         }
     }
@@ -492,8 +516,49 @@ class CotizacionController extends Controller
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
                 'line_discount' => $item->line_discount,
             ])
+            ->all();
+    }
+
+    private function debeActualizarPreciosEnTransicion(string $oldStatus, string $newStatus): bool
+    {
+        return in_array($oldStatus, ['borrador', 'creada'], true)
+            && in_array($newStatus, ['borrador', 'creada', 'enviada'], true);
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     * @return array<int, array<string, mixed>>
+     */
+    private function detectarCambiosPrecio(array $items): array
+    {
+        $products = Product::whereIn('id', array_column($items, 'product_id'))->get()->keyBy('id');
+
+        return collect($items)
+            ->map(function (array $item) use ($products): ?array {
+                $product = $products->get((int) $item['product_id']);
+
+                if (! $product) {
+                    return null;
+                }
+
+                $precioAnterior = $this->normalizarNumeroFormulario($item['unit_price'] ?? 0);
+                $precioActual = $this->normalizarNumeroFormulario($product->unit_price);
+
+                if ($precioAnterior === $precioActual) {
+                    return null;
+                }
+
+                return [
+                    'producto' => $product->name,
+                    'precio_anterior' => $precioAnterior,
+                    'precio_actual' => $precioActual,
+                ];
+            })
+            ->filter()
+            ->values()
             ->all();
     }
 
@@ -550,6 +615,24 @@ class CotizacionController extends Controller
         return round(max((float) str_replace(',', '', (string) $value), 0), 2);
     }
 
+    private function siguienteFolio(): string
+    {
+        $year = now()->year;
+        $prefix = "COT-{$year}-";
+        $lastNumber = Quotation::where('folio', 'like', $prefix.'%')
+            ->pluck('folio')
+            ->map(function (string $folio) use ($prefix): int {
+                if (preg_match('/^'.preg_quote($prefix, '/').'(\d+)$/', $folio, $matches) === 1) {
+                    return (int) $matches[1];
+                }
+
+                return 0;
+            })
+            ->max() ?? 0;
+
+        return sprintf('%s%03d', $prefix, $lastNumber + 1);
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -592,7 +675,7 @@ class CotizacionController extends Controller
 
         return array_merge([
             'id' => null,
-            'folio' => sprintf('COT-%s-%03d', now()->year, Quotation::count() + 1),
+            'folio' => $this->siguienteFolio(),
             'client_id' => null,
             'user_id' => auth()->id(),
             'cliente' => '',
@@ -613,27 +696,52 @@ class CotizacionController extends Controller
      */
     private function presentarCotizacion(Quotation $quotation, bool $withLines = true): array
     {
+        $useCatalogPrice = in_array($quotation->status, ['borrador', 'creada'], true);
         $lineas = $withLines
-            ? $quotation->items->map(fn ($item): array => [
-                'id' => $item->id,
-                'product_id' => $item->product_id,
-                'sku' => $item->product?->sku,
-                'producto' => $item->product?->name ?? 'Producto eliminado',
-                'descripcion' => $item->product?->description,
-                'cantidad' => $item->quantity,
-                'quantity' => $item->quantity,
-                'precio_unitario' => (float) $item->unit_price,
-                'unit_price' => (float) $item->unit_price,
-                'precio_catalogo' => (float) ($item->product?->unit_price ?? $item->unit_price),
-                'descuento_linea' => (float) $item->line_discount,
-                'line_discount' => (float) $item->line_discount,
-                'stock' => $item->product?->stock,
-                'subtotal' => (float) $item->subtotal,
-            ])->all()
+            ? $quotation->items->map(function ($item) use ($useCatalogPrice): array {
+                $precioCotizado = (float) $item->unit_price;
+                $precioCatalogo = (float) ($item->product?->unit_price ?? $item->unit_price);
+                $precioUnitario = $useCatalogPrice ? $precioCatalogo : $precioCotizado;
+                $descuentoLinea = (float) $item->line_discount;
+                $cantidad = (int) $item->quantity;
+
+                return [
+                    'id' => $item->id,
+                    'product_id' => $item->product_id,
+                    'sku' => $item->product?->sku,
+                    'producto' => $item->product?->name ?? 'Producto eliminado',
+                    'descripcion' => $item->product?->description,
+                    'cantidad' => $cantidad,
+                    'quantity' => $cantidad,
+                    'precio_unitario' => $precioUnitario,
+                    'unit_price' => $precioUnitario,
+                    'precio_cotizado' => $precioCotizado,
+                    'precio_catalogo' => $precioCatalogo,
+                    'descuento_linea' => $descuentoLinea,
+                    'line_discount' => $descuentoLinea,
+                    'stock' => $item->product?->stock,
+                    'subtotal' => round(max(($cantidad * $precioUnitario) - $descuentoLinea, 0), 2),
+                ];
+            })->all()
             : [];
 
-        $subtotal = (float) $quotation->subtotal;
         $discountGlobal = (float) $quotation->discount_global;
+        $subtotal = $useCatalogPrice && $withLines
+            ? round(array_sum(array_column($lineas, 'subtotal')), 2)
+            : (float) $quotation->subtotal;
+        $base = round(max($subtotal - $discountGlobal, 0), 2);
+        $tax = $useCatalogPrice && $withLines
+            ? round($base * 0.16, 2)
+            : (float) $quotation->tax;
+        $cambiosPrecio = collect($lineas)
+            ->filter(fn (array $linea): bool => $this->normalizarNumeroFormulario($linea['precio_cotizado'] ?? $linea['precio_unitario'] ?? 0) !== $this->normalizarNumeroFormulario($linea['precio_catalogo'] ?? $linea['precio_unitario'] ?? 0))
+            ->map(fn (array $linea): array => [
+                'producto' => $linea['producto'] ?? 'Producto',
+                'precio_anterior' => $this->normalizarNumeroFormulario($linea['precio_cotizado'] ?? $linea['precio_unitario'] ?? 0),
+                'precio_actual' => $this->normalizarNumeroFormulario($linea['precio_catalogo'] ?? 0),
+            ])
+            ->values()
+            ->all();
 
         return [
             'id' => $quotation->id,
@@ -651,13 +759,14 @@ class CotizacionController extends Controller
             'estado' => self::STATUS_LABELS[$quotation->status] ?? ucfirst($quotation->status),
             'notas' => '',
             'lineas' => $lineas,
+            'cambios_precio' => $cambiosPrecio,
             'subtotal' => $subtotal,
             'discount_global' => $discountGlobal,
             'descuento_global' => $discountGlobal,
-            'base' => round(max($subtotal - $discountGlobal, 0), 2),
-            'tax' => (float) $quotation->tax,
-            'iva' => (float) $quotation->tax,
-            'total' => (float) $quotation->total,
+            'base' => $base,
+            'tax' => $tax,
+            'iva' => $tax,
+            'total' => $useCatalogPrice && $withLines ? round($base + $tax, 2) : (float) $quotation->total,
         ];
     }
 }

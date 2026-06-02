@@ -16,9 +16,10 @@ return new class extends Migration
         DB::table('orders')->where('status', 'activo')->update(['status' => 'pendiente']);
         DB::table('orders')->where('status', 'entregado')->update(['status' => 'enviado']);
         DB::table('orders')->where('status', 'cancelado')->update(['status' => 'vencido']);
+        DB::table('orders')->where('status', 'pagado')->update(['status' => 'pendiente']);
 
         if (DB::getDriverName() === 'mysql') {
-            DB::statement("ALTER TABLE orders MODIFY status ENUM('pendiente', 'pagado', 'enviado', 'vencido') NOT NULL DEFAULT 'pendiente'");
+            DB::statement("ALTER TABLE orders MODIFY status ENUM('pendiente', 'enviado', 'vencido') NOT NULL DEFAULT 'pendiente'");
         }
 
         if (! Schema::hasColumn('orders', 'expires_at')) {

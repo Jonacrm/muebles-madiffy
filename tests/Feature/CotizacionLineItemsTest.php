@@ -63,6 +63,8 @@ class CotizacionLineItemsTest extends TestCase
         ]);
 
         $component
+            ->assertSee('MES-001 Mesa')
+            ->assertSee('SIL-001 Silla')
             ->call('seleccionarProducto', 0, 2)
             ->set('lineas.0.quantity', 3)
             ->set('lineas.0.line_discount', 50)
@@ -110,6 +112,49 @@ class CotizacionLineItemsTest extends TestCase
 
         $component
             ->call('refrescarPreciosDeCatalogo')
+            ->assertSee('$125.00')
+            ->assertSee('cambió de $75.00 a $125.00');
+    }
+
+    public function test_created_quote_shows_catalog_price_change_warning(): void
+    {
+        $product = Product::create([
+            'sku' => 'MES-003',
+            'name' => 'Mesa modelo 3',
+            'unit_price' => 100,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
+        Livewire::test(CotizacionLineItems::class, [
+            'productosIniciales' => [$product],
+            'lineasIniciales' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 75,
+                    'line_discount' => 0,
+                ],
+            ],
+            'status' => 'creada',
+        ])
+            ->assertSee('$100.00')
+            ->assertSee('cambió de $75.00 a $100.00');
+
+        $product->update(['unit_price' => 125]);
+
+        Livewire::test(CotizacionLineItems::class, [
+            'productosIniciales' => [$product],
+            'lineasIniciales' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 75,
+                    'line_discount' => 0,
+                ],
+            ],
+            'status' => 'creada',
+        ])
             ->assertSee('$125.00')
             ->assertSee('cambió de $75.00 a $125.00');
     }

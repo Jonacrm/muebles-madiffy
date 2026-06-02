@@ -111,6 +111,7 @@ class CotizacionStatusTest extends TestCase
             'stock' => 5,
             'active' => true,
         ]);
+        $expectedFolio = sprintf('COT-%s-001', now()->year);
 
         $this
             ->actingAs($user)
@@ -131,10 +132,23 @@ class CotizacionStatusTest extends TestCase
             ->assertRedirect();
 
         $this->assertDatabaseHas('quotations', [
-            'folio' => 'COT-CREATE-001',
+            'folio' => $expectedFolio,
             'status' => 'borrador',
             'validity_days' => 7,
         ]);
+    }
+
+    public function test_create_form_prefills_next_quotation_folio_for_current_year(): void
+    {
+        $user = User::factory()->create();
+        $year = now()->year;
+        $this->createQuotation($user, 'borrador', sprintf('COT-%s-003', $year));
+
+        $this
+            ->actingAs($user)
+            ->get(route('cotizaciones.create'))
+            ->assertOk()
+            ->assertSee(sprintf('COT-%s-004', $year));
     }
 
     public function test_draft_can_be_created_and_created_can_return_to_draft(): void
