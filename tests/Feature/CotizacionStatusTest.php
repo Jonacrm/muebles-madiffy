@@ -100,6 +100,23 @@ class CotizacionStatusTest extends TestCase
         ]);
     }
 
+    public function test_deleting_reserved_quotation_returns_stock(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $quotation = $this->createQuotation($admin, 'creada', 'COT-DEL-001', 2, 3);
+        $product = $quotation->items()->first()->product;
+
+        $this
+            ->actingAs($admin)
+            ->delete(route('cotizaciones.destroy', $quotation))
+            ->assertRedirect(route('cotizaciones.index'));
+
+        $this->assertDatabaseMissing('quotations', [
+            'id' => $quotation->id,
+        ]);
+        $this->assertSame(5, $product->fresh()->stock);
+    }
+
     public function test_store_always_creates_a_draft_quote(): void
     {
         $user = User::factory()->create();
@@ -218,7 +235,38 @@ class CotizacionStatusTest extends TestCase
         $this->assertSame('vencida', $accepted->fresh()->status);
     }
 
-    private function createQuotation(User $user, string $status, string $folio = 'COT-TEST-001'): Quotation
+    public function test_existing_draft_lines_with_inactive_products_can_still_be_saved(): void
+    {
+        $user = User::factory()->create();
+        $quotation = $this->createQuotation($user, 'borrador');
+        $item = $quotation->items()->first();
+        $product = $item->product;
+
+        $product->update(['active' => false]);
+
+        $this
+            ->actingAs($user)
+            ->patch(route('cotizaciones.update', $quotation), [
+                'folio' => $quotation->folio,
+                'client_id' => $quotation->client_id,
+                'status' => 'borrador',
+                'discount_global' => 0,
+                'validity_days' => 14,
+                'items' => [
+                    [
+                        'id' => $item->id,
+                        'product_id' => $product->id,
+                        'quantity' => 1,
+                        'line_discount' => 0,
+                    ],
+                ],
+            ])
+            ->assertRedirect(route('cotizaciones.show', $quotation));
+
+        $this->assertSame('borrador', $quotation->fresh()->status);
+    }
+
+    private function createQuotation(User $user, string $status, string $folio = 'COT-TEST-001', int $quantity = 1, int $stock = 5): Quotation
     {
         $client = Client::create([
             'name' => 'Cliente de prueba',
@@ -229,29 +277,32 @@ class CotizacionStatusTest extends TestCase
             'sku' => $folio,
             'name' => 'Mesa de prueba',
             'unit_price' => 1000,
-            'stock' => 5,
+            'stock' => $stock,
             'active' => true,
         ]);
+
+        $subtotal = 1000 * $quantity;
+        $tax = round($subtotal * 0.16, 2);
 
         $quotation = Quotation::create([
             'folio' => $folio,
             'client_id' => $client->id,
             'user_id' => $user->id,
             'status' => $status,
-            'subtotal' => 1000,
+            'subtotal' => $subtotal,
             'discount_global' => 0,
-            'tax' => 160,
-            'total' => 1160,
+            'tax' => $tax,
+            'total' => $subtotal + $tax,
             'expires_at' => now()->addDays(14)->toDateString(),
             'validity_days' => 14,
         ]);
 
         $quotation->items()->create([
             'product_id' => $product->id,
-            'quantity' => 1,
+            'quantity' => $quantity,
             'unit_price' => 1000,
             'line_discount' => 0,
-            'subtotal' => 1000,
+            'subtotal' => $subtotal,
         ]);
 
         return $quotation;

@@ -39,75 +39,81 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
-                            @if (! in_array($cotizacion['status'], ['borrador', 'enviada'], true))
-                                <button type="button" class="cursor-not-allowed rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-400" disabled>
-                                    Editar
-                                </button>
-                            @else
-                                <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="rounded border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
-                                    Editar
-                                </a>
-                            @endif
-
-                            @if ($cotizacion['status'] === 'borrador')
-                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="status" value="creada">
-                                    <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
-                                        Crear
+                            @can('editar-cotizacion', $quotation)
+                                @if (! in_array($cotizacion['status'], ['borrador', 'enviada'], true))
+                                    <button type="button" class="cursor-not-allowed rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-400" disabled>
+                                        Editar
                                     </button>
-                                </form>
-                            @endif
+                                @else
+                                    <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="rounded border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">
+                                        Editar
+                                    </a>
+                                @endif
+                            @endcan
 
-                            @if ($cotizacion['status'] === 'creada')
-                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="status" value="enviada">
-                                    <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
-                                        Enviar
-                                    </button>
-                                </form>
+                            @can('cambiar-estado-cotizacion', $quotation)
+                                @if ($cotizacion['status'] === 'borrador')
+                                    <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="status" value="creada">
+                                        <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
+                                            Crear
+                                        </button>
+                                    </form>
+                                @endif
 
-                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="status" value="borrador">
-                                    <button type="submit" class="rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
-                                        Regresar a borrador
-                                    </button>
-                                </form>
-                            @endif
+                                @if ($cotizacion['status'] === 'creada')
+                                    <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="status" value="enviada">
+                                        <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
+                                            Enviar
+                                        </button>
+                                    </form>
 
-                            @if ($cotizacion['status'] === 'enviada')
-                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="status" value="aceptada">
-                                    <button type="submit" class="rounded bg-green-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-800">
-                                        Aceptar
-                                    </button>
-                                </form>
+                                    <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="status" value="borrador">
+                                        <button type="submit" class="rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">
+                                            Regresar a borrador
+                                        </button>
+                                    </form>
+                                @endif
 
-                                <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
-                                    @csrf
-                                    @method('PATCH')
-                                    <input type="hidden" name="status" value="rechazada">
-                                    <button type="submit" class="rounded border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
-                                        Rechazar
-                                    </button>
-                                </form>
-                            @endif
+                                @if ($cotizacion['status'] === 'enviada')
+                                    <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="status" value="aceptada">
+                                        <button type="submit" class="rounded bg-green-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-green-800">
+                                            Aceptar
+                                        </button>
+                                    </form>
 
-                            @if ($cotizacion['estado'] === 'Aceptada')
-                                <form action="{{ route('cotizaciones.convertir', $cotizacion['id']) }}" method="POST">
-                                    @csrf
-                                    <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
-                                        Convertir a pedido
-                                    </button>
-                                </form>
-                            @endif
+                                    <form action="{{ route('cotizaciones.estado', $cotizacion['id']) }}" method="POST">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="status" value="rechazada">
+                                        <button type="submit" class="rounded border border-red-200 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-50">
+                                            Rechazar
+                                        </button>
+                                    </form>
+                                @endif
+                            @endcan
+
+                            @can('convertir-cotizacion', $quotation)
+                                @if ($cotizacion['estado'] === 'Aceptada')
+                                    <form action="{{ route('cotizaciones.convertir', $cotizacion['id']) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="rounded bg-indigo-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-indigo-800">
+                                            Convertir a pedido
+                                        </button>
+                                    </form>
+                                @endif
+                            @endcan
                         </div>
                     </div>
 

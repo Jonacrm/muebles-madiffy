@@ -6,6 +6,7 @@ use App\Models\Order;
 use App\Services\PedidoVencimiento;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -21,12 +22,22 @@ class PedidoController extends Controller
 
     public function index(): View
     {
+        Gate::authorize('ver-pedidos');
+
         $this->vencimiento->vencerExpirados();
 
-        $pedidos = Order::with(['client', 'quotation'])->orderByDesc('id')->get();
+        $query = Order::with(['client', 'quotation']);
+
+        if (! Gate::allows('ver-todos-pedidos')) {
+            $query->where('user_id', auth()->id());
+        }
+
+        $pedidos = $query->orderByDesc('id')->get();
 
         return view('pedidos.index', [
-            'pedidos' => $pedidos->map(fn (Order $order): array => $this->presentarPedido($order, false))->all(),
+            'pedidos' => $pedidos->map(fn (Order $order): array => array_merge([
+                'order' => $order,
+            ], $this->presentarPedido($order, false)))->all(),
         ]);
     }
 
@@ -36,6 +47,8 @@ class PedidoController extends Controller
 
         $order = Order::with(['client', 'quotation', 'user', 'items.product'])->findOrFail($pedido);
 
+        Gate::authorize('ver-pedido', $order);
+
         return view('pedidos.show', [
             'pedido' => $this->presentarPedido($order),
         ]);
@@ -43,6 +56,8 @@ class PedidoController extends Controller
 
     public function cambiarEstado(Request $request, string $pedido): RedirectResponse
     {
+        Gate::authorize('gestionar-pedidos');
+
         $this->vencimiento->vencerExpirados();
 
         $order = Order::findOrFail($pedido);

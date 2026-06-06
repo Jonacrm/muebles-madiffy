@@ -8,9 +8,11 @@ use App\Models\Product;
 use App\Models\Quotation;
 use App\Services\CotizacionTotals;
 use App\Services\CotizacionVencimiento;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -46,22 +48,39 @@ class CotizacionController extends Controller
 
     public function index(): View
     {
+        Gate::authorize('ver-cotizaciones');
+
         $this->vencimiento->vencerExpiradas();
 
-        $cotizaciones = Quotation::with(['client', 'user'])->orderByDesc('id')->get();
+        $query = Quotation::with(['client', 'user']);
+        $resumenQuery = clone $query;
+
+        // Si no puede ver todas, filtra solo las suyas
+        if (! Gate::allows('ver-todas-cotizaciones')) {
+            $query->where('user_id', auth()->id());
+            $resumenQuery->where('user_id', auth()->id());
+        }
+
+        $cotizaciones = (clone $query)->orderByDesc('id')->get();
 
         return view('cotizaciones.index', [
-            'cotizaciones' => $cotizaciones->map(fn (Quotation $quotation): array => $this->presentarCotizacion($quotation, false))->all(),
+            'cotizaciones' => $cotizaciones->map(
+                fn (Quotation $q) => array_merge([
+                    'quotation' => $q,
+                ], $this->presentarCotizacion($q, false))
+            )->all(),
             'resumen' => [
-                'pendientes' => Quotation::whereIn('status', ['borrador', 'creada', 'enviada'])->count(),
-                'aceptadas' => Quotation::where('status', 'aceptada')->count(),
-                'convertidas' => Quotation::where('status', 'convertida')->count(),
+                'pendientes' => (clone $resumenQuery)->whereIn('status', ['borrador', 'creada', 'enviada'])->count(),
+                'aceptadas' => (clone $resumenQuery)->where('status', 'aceptada')->count(),
+                'convertidas' => (clone $resumenQuery)->where('status', 'convertida')->count(),
             ],
         ]);
     }
 
     public function create(): View
     {
+        Gate::authorize('crear-cotizacion');
+
         return view('cotizaciones.create', [
             'cotizacion' => $this->cotizacionPlantilla(),
             'clientes' => Client::orderBy('name')->get(),
@@ -71,35 +90,48 @@ class CotizacionController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $request->merge(['folio' => $this->siguienteFolio()]);
+        Gate::authorize('crear-cotizacion');
 
-        $data = $this->validatedData($request);
-        $data['status'] = 'borrador';
+        $quotation = null;
 
-        $quotation = DB::transaction(function () use ($data, $request): Quotation {
-            $totales = $this->calcularTotales($data['items'], (float) ($data['discount_global'] ?? 0));
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            $request->merge(['folio' => $this->siguienteFolio()]);
 
-            $this->validarStockDisponible($totales['items'], $data['status']);
+            $data = $this->validatedData($request);
+            $data['status'] = 'borrador';
 
-            $quotation = new Quotation([
-                'folio' => $data['folio'],
-                'client_id' => $data['client_id'],
-                'user_id' => $request->user()->id,
-                'status' => $data['status'],
-                'subtotal' => $totales['subtotal'],
-                'discount_global' => $totales['discount_global'],
-                'tax' => $totales['tax'],
-                'total' => $totales['total'],
-                'expires_at' => $this->fechaVigencia((int) $data['validity_days']),
-                'validity_days' => $data['validity_days'],
-            ]);
+            try {
+                $quotation = DB::transaction(function () use ($data, $request): Quotation {
+                    $this->validarProductosActivos($data['items']);
 
-            $quotation->save();
-            $this->guardarLineas($quotation, $totales['items']);
-            $this->aplicarMovimientoStock(null, $data['status'], $totales['items']);
+                    $totales = $this->calcularTotales($data['items'], (float) ($data['discount_global'] ?? 0));
 
-            return $quotation;
-        });
+                    $quotation = new Quotation([
+                        'folio' => $data['folio'],
+                        'client_id' => $data['client_id'],
+                        'user_id' => $request->user()->id,
+                        'status' => $data['status'],
+                        'subtotal' => $totales['subtotal'],
+                        'discount_global' => $totales['discount_global'],
+                        'tax' => $totales['tax'],
+                        'total' => $totales['total'],
+                        'expires_at' => $this->fechaVigencia((int) $data['validity_days']),
+                        'validity_days' => $data['validity_days'],
+                    ]);
+
+                    $quotation->save();
+                    $this->guardarLineas($quotation, $totales['items']);
+
+                    return $quotation;
+                });
+
+                break;
+            } catch (QueryException $exception) {
+                if (! $this->esViolacionDeUnicidad($exception) || $attempt === 2) {
+                    throw $exception;
+                }
+            }
+        }
 
         return redirect()->route('cotizaciones.show', $quotation)->with('status', 'Cotización guardada correctamente.');
     }
@@ -107,10 +139,12 @@ class CotizacionController extends Controller
     public function show(string $cotizacion): View
     {
         $this->vencimiento->vencerExpiradas();
-
         $quotation = Quotation::with(['client', 'user', 'items.product'])->findOrFail($cotizacion);
 
+        Gate::authorize('ver-cotizacion', $quotation);
+
         return view('cotizaciones.show', [
+            'quotation' => $quotation,
             'cotizacion' => $this->presentarCotizacion($quotation),
         ]);
     }
@@ -120,6 +154,8 @@ class CotizacionController extends Controller
         $this->vencimiento->vencerExpiradas();
 
         $quotation = Quotation::with(['client', 'user', 'items.product'])->findOrFail($cotizacion);
+
+        Gate::authorize('editar-cotizacion', $quotation);
 
         if (! in_array($quotation->status, self::EDITABLE_STATUS_VALUES, true)) {
             return redirect()
@@ -136,7 +172,9 @@ class CotizacionController extends Controller
 
     public function update(Request $request, string $cotizacion): RedirectResponse
     {
-        $quotation = Quotation::findOrFail($cotizacion);
+        $quotation = Quotation::with('items')->findOrFail($cotizacion);
+
+        Gate::authorize('editar-cotizacion', $quotation);
 
         if (! in_array($quotation->status, self::EDITABLE_STATUS_VALUES, true)) {
             return redirect()
@@ -148,6 +186,8 @@ class CotizacionController extends Controller
         $data['status'] = $quotation->status;
 
         DB::transaction(function () use ($quotation, $data): void {
+            $this->validarProductosActivos($data['items'], $quotation);
+
             $oldStatus = $quotation->status;
             $totales = $this->calcularTotales($data['items'], (float) ($data['discount_global'] ?? 0), $quotation);
 
@@ -180,13 +220,27 @@ class CotizacionController extends Controller
 
     public function destroy(string $cotizacion): RedirectResponse
     {
-        $quotation = Quotation::findOrFail($cotizacion);
+        $quotation = Quotation::with('items')->findOrFail($cotizacion);
+
+        Gate::authorize('eliminar-cotizacion', $quotation);
 
         if ($quotation->order()->exists()) {
             return redirect()->route('cotizaciones.index')->with('status', 'No se puede eliminar una cotización convertida a pedido.');
         }
 
-        $quotation->delete();
+        DB::transaction(function () use ($quotation): void {
+            if ($this->cotizacionReservaStock($quotation->status)) {
+                $this->ajustarStock(
+                    $quotation->items->map(fn ($item): array => [
+                        'product_id' => $item->product_id,
+                        'quantity' => $item->quantity,
+                    ])->all(),
+                    1,
+                );
+            }
+
+            $quotation->delete();
+        });
 
         return redirect()->route('cotizaciones.index')->with('status', 'Cotización eliminada correctamente.');
     }
@@ -195,7 +249,9 @@ class CotizacionController extends Controller
     {
         $this->vencimiento->vencerExpiradas();
 
-        $quotation = Quotation::with(['client', 'user', 'items.product', 'order'])->findOrFail($cotizacion);
+        $quotation = Quotation::with(['items', 'order'])->findOrFail($cotizacion);
+
+        Gate::authorize('convertir-cotizacion', $quotation);
 
         if ($quotation->order) {
             return redirect()->route('pedidos.show', $quotation->order)->with('status', 'Esta cotización ya tiene un pedido generado.');
@@ -252,6 +308,8 @@ class CotizacionController extends Controller
     public function cambiarEstado(Request $request, string $cotizacion): RedirectResponse
     {
         $quotation = Quotation::with('items')->findOrFail($cotizacion);
+        Gate::authorize('cambiar-estado-cotizacion', $quotation);
+
         $data = $request->validate([
             'status' => ['required', Rule::in(['borrador', 'creada', 'enviada', 'aceptada', 'rechazada'])],
         ]);
@@ -453,7 +511,12 @@ class CotizacionController extends Controller
             return;
         }
 
-        $products = Product::whereIn('id', $quantities->keys())->get()->keyBy('id');
+        $productIds = $quantities->keys()->map(fn ($productId): int => (int) $productId)->sort()->values();
+        $products = Product::whereIn('id', $productIds)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
         $errors = [];
 
         foreach ($quantities as $productId => $quantity) {
@@ -472,6 +535,61 @@ class CotizacionController extends Controller
 
         if ($errors !== []) {
             throw ValidationException::withMessages(['items' => implode(' ', $errors)]);
+        }
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $items
+     */
+    private function validarProductosActivos(array $items, ?Quotation $quotation = null): void
+    {
+        $quotationItems = $quotation?->items?->keyBy(fn ($item): int => (int) $item->id);
+
+        $productIds = collect($items)
+            ->filter(function (array $item) use ($quotationItems): bool {
+                if (! $quotationItems) {
+                    return true;
+                }
+
+                $itemId = (int) ($item['id'] ?? 0);
+
+                if ($itemId === 0) {
+                    return true;
+                }
+
+                $existingItem = $quotationItems->get($itemId);
+
+                if (! $existingItem) {
+                    return true;
+                }
+
+                return (int) $existingItem->product_id !== (int) ($item['product_id'] ?? 0);
+            })
+            ->pluck('product_id')
+            ->filter()
+            ->map(fn ($productId): int => (int) $productId)
+            ->unique()
+            ->values();
+
+        if ($productIds->isEmpty()) {
+            return;
+        }
+
+        $activeProductIds = Product::whereIn('id', $productIds)
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get(['id', 'active'])
+            ->filter(fn (Product $product): bool => $product->active)
+            ->pluck('id')
+            ->map(fn ($productId): int => (int) $productId)
+            ->all();
+
+        $inactiveIds = array_values(array_diff($productIds->all(), $activeProductIds));
+
+        if ($inactiveIds !== []) {
+            throw ValidationException::withMessages([
+                'items' => 'Solo puedes usar productos activos en las nuevas líneas de la cotización.',
+            ]);
         }
     }
 
@@ -593,6 +711,7 @@ class CotizacionController extends Controller
     {
         collect($items)
             ->groupBy('product_id')
+            ->sortKeys()
             ->each(function ($lines, int $productId) use ($direction): void {
                 $quantity = (int) $lines->sum('quantity');
 
@@ -604,6 +723,21 @@ class CotizacionController extends Controller
 
                 Product::whereKey($productId)->increment('stock', $quantity);
             });
+    }
+
+    private function cotizacionReservaStock(string $status): bool
+    {
+        return in_array($status, ['creada', 'enviada', 'aceptada'], true);
+    }
+
+    private function esViolacionDeUnicidad(QueryException $exception): bool
+    {
+        $code = (string) $exception->getCode();
+        $message = strtolower($exception->getMessage());
+
+        return in_array($code, ['23000', '23505'], true)
+            || str_contains($message, 'unique')
+            || str_contains($message, 'duplicate');
     }
 
     private function normalizarNumeroFormulario(mixed $value): float
