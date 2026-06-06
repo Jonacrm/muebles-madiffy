@@ -17,7 +17,7 @@ class PedidoStatusTest extends TestCase
 
     public function test_pending_order_can_be_marked_sent(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
         $order = $this->createOrder($user, 'pendiente');
 
         $this

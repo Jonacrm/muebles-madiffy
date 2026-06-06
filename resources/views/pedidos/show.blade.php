@@ -36,6 +36,7 @@
 
                         <div class="flex flex-wrap gap-3">
                             @if ($pedido['status'] === 'pendiente')
+                                @can('gestionar-pedidos')
                                 <form action="{{ route('pedidos.estado', $pedido['id']) }}" method="POST">
                                     @csrf
                                     @method('PATCH')
@@ -44,6 +45,7 @@
                                         Marcar enviado
                                     </button>
                                 </form>
+                                @endcan
                             @endif
 
                             <a href="{{ route('cotizaciones.show', $pedido['cotizacion_id']) }}" class="rounded border border-indigo-200 px-4 py-2 text-sm font-semibold text-indigo-700 hover:bg-indigo-50">

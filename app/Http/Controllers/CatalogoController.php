@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -15,6 +16,8 @@ class CatalogoController extends Controller
      */
     public function index(): View
     {
+        Gate::authorize('ver-catalogo');
+
         return view('catalogo.index', [
             'productos' => Product::latest()->get(),
         ]);
@@ -25,6 +28,8 @@ class CatalogoController extends Controller
      */
     public function create(): View
     {
+        Gate::authorize('gestionar-catalogo');
+
         return view('catalogo.create');
     }
 
@@ -33,6 +38,7 @@ class CatalogoController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        Gate::authorize('gestionar-catalogo');
         $data = $this->validatedData($request);
         $data['active'] = $request->boolean('active');
 
@@ -46,6 +52,8 @@ class CatalogoController extends Controller
      */
     public function show(string $id): RedirectResponse
     {
+        Gate::authorize('gestionar-catalogo');
+
         return redirect()->route('catalogo.edit', $id);
     }
 
@@ -54,6 +62,7 @@ class CatalogoController extends Controller
      */
     public function edit(string $id): View
     {
+        Gate::authorize('gestionar-catalogo');
         $producto = Product::findOrFail($id);
 
         return view('catalogo.edit', [
@@ -67,6 +76,7 @@ class CatalogoController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
+        Gate::authorize('gestionar-catalogo');
         $producto = Product::findOrFail($id);
         $data = $this->validatedData($request, $producto->id);
         $data['active'] = $request->boolean('active');
@@ -82,6 +92,7 @@ class CatalogoController extends Controller
      */
     public function destroy(string $id): RedirectResponse
     {
+        Gate::authorize('gestionar-catalogo');
         $producto = Product::findOrFail($id);
 
         if ($producto->quotationItems()->exists() || $producto->orderItems()->exists()) {

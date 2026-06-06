@@ -13,21 +13,30 @@
                         {{ __('Dashboard') }}
                     </x-nav-link>
 
+                    @can('ver-clientes')
                     <x-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
                         Clientes
                     </x-nav-link>
+                    @endcan
 
+
+                    @can('ver-catalogo')
                     <x-nav-link :href="route('catalogo.index')" :active="request()->routeIs('catalogo.*')">
                         Catálogo
                     </x-nav-link>
+                    @endcan
 
+                    @can('ver-cotizaciones')
                     <x-nav-link :href="route('cotizaciones.index')" :active="request()->routeIs('cotizaciones.*')">
                         Cotizaciones
                     </x-nav-link>
+                    @endcan
 
+                    @can('ver-pedidos')
                     <x-nav-link :href="route('pedidos.index')" :active="request()->routeIs('pedidos.*')">
                         Pedidos
                     </x-nav-link>
+                    @endcan
                 </div>
             </div>
 
@@ -80,21 +89,30 @@
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
 
-            <x-responsive-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
-                Clientes
-            </x-responsive-nav-link>
+            
+            @can('ver-clientes')
+                <x-responsive-nav-link :href="route('clientes.index')" :active="request()->routeIs('clientes.*')">
+                    Clientes
+                </x-responsive-nav-link>
+            @endcan
 
-            <x-responsive-nav-link :href="route('catalogo.index')" :active="request()->routeIs('catalogo.*')">
-                Catálogo
-            </x-responsive-nav-link>
+            @can('ver-catalogo')
+                <x-responsive-nav-link :href="route('catalogo.index')" :active="request()->routeIs('catalogo.*')">
+                    Catálogo
+                </x-responsive-nav-link>
+            @endcan
 
-            <x-responsive-nav-link :href="route('cotizaciones.index')" :active="request()->routeIs('cotizaciones.*')">
-                Cotizaciones
-            </x-responsive-nav-link>
+            @can('ver-cotizaciones')
+                <x-responsive-nav-link :href="route('cotizaciones.index')" :active="request()->routeIs('cotizaciones.*')">
+                    Cotizaciones
+                </x-responsive-nav-link>
+            @endcan
 
-            <x-responsive-nav-link :href="route('pedidos.index')" :active="request()->routeIs('pedidos.*')">
-                Pedidos
-            </x-responsive-nav-link>
+            @can('ver-pedidos')
+                <x-responsive-nav-link :href="route('pedidos.index')" :active="request()->routeIs('pedidos.*')">
+                    Pedidos
+                </x-responsive-nav-link>
+            @endcan
         </div>
 
         <div class="pt-4 pb-1 border-t border-gray-200">
