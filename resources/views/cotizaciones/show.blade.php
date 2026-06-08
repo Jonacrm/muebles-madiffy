@@ -39,6 +39,12 @@
                         </div>
 
                         <div class="flex flex-wrap gap-3">
+                            @if (in_array($cotizacion['status'], ['enviada', 'aceptada', 'convertida'], true))
+                                <a href="{{ route('cotizaciones.pdf', $cotizacion['id']) }}" class="rounded bg-red-700 px-4 py-2 text-sm font-bold text-white shadow hover:bg-red-800">
+                                    Descargar PDF
+                                </a>
+                            @endif
+
                             @can('editar-cotizacion', $quotation)
                                 @if (! in_array($cotizacion['status'], ['borrador', 'enviada'], true))
                                     <button type="button" class="cursor-not-allowed rounded border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-400" disabled>

@@ -10,34 +10,49 @@
                 </button>
             </div>
 
+            <div class="mb-4 w-full">
+                <label for="busqueda_producto" class="block text-sm font-medium text-indigo-500">Buscar producto</label>
+                <input type="search" id="busqueda_producto" wire:model.live.debounce.300ms="busquedaProducto" placeholder="Buscar por nombre..." style="max-width: none;" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <p class="mt-1 text-xs text-gray-500">Filtra las opciones del selector por nombre del producto.</p>
+            </div>
+
             <div class="overflow-x-auto">
-                <table class="min-w-full bg-white border border-gray-200">
+                <table class="w-full table-fixed bg-white border border-gray-200">
+                    <colgroup>
+                        <col style="width: 23%;">
+                        <col style="width: 19%;">
+                        <col style="width: 7%;">
+                        <col style="width: 24%;">
+                        <col style="width: 8%;">
+                        <col style="width: 7%;">
+                        <col style="width: 12%;">
+                    </colgroup>
                     <thead class="bg-gray-100">
                         <tr>
-                            <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Producto</th>
-                            <th class="py-2 px-4 border-b text-left text-sm font-semibold text-indigo-500">Descripción</th>
-                            <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Cantidad</th>
-                            <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Precio</th>
-                            <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Descuento</th>
-                            <th class="py-2 px-4 border-b text-right text-sm font-semibold text-indigo-500">Importe</th>
-                            <th class="py-2 px-4 border-b text-center text-sm font-semibold text-indigo-500">Acciones</th>
+                            <th class="border-b px-3 py-2 text-left text-sm font-semibold text-indigo-500">Producto</th>
+                            <th class="border-b px-3 py-2 text-left text-sm font-semibold text-indigo-500">Descripción</th>
+                            <th class="border-b px-3 py-2 text-right text-sm font-semibold text-indigo-500">Cantidad</th>
+                            <th class="border-b px-3 py-2 text-right text-sm font-semibold text-indigo-500">Precio</th>
+                            <th class="border-b px-3 py-2 text-right text-sm font-semibold text-indigo-500">Descuento</th>
+                            <th class="border-b px-3 py-2 text-right text-sm font-semibold text-indigo-500">Importe</th>
+                            <th class="border-b px-3 py-2 text-center text-sm font-semibold text-indigo-500">Acciones</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach ($lineas as $index => $linea)
                             <tr wire:key="cotizacion-linea-{{ $index }}-{{ $linea['product_id'] ?? 'nueva' }}">
-                                <td class="py-2 px-4 border-b text-sm text-gray-800">
+                                <td class="border-b px-3 py-3 align-top text-sm text-gray-800">
                                     <input type="hidden" name="items[{{ $index }}][id]" value="{{ $linea['id'] ?? '' }}">
 
                                     @if ($this->lineaBloqueada($linea))
                                         <input type="hidden" name="items[{{ $index }}][product_id]" value="{{ $linea['product_id'] }}">
-                                        <div class="min-w-48 rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-700">
+                                        <div class="block h-10 w-full truncate rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-gray-700" title="{{ $linea['producto'] }}">
                                             {{ $linea['producto'] }}
                                         </div>
                                     @else
-                                        <select name="items[{{ $index }}][product_id]" wire:change="seleccionarProducto({{ $index }}, $event.target.value)" class="min-w-48 rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
+                                        <select name="items[{{ $index }}][product_id]" wire:change="seleccionarProducto({{ $index }}, $event.target.value)" class="block h-10 w-full rounded-md border-gray-300 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" required>
                                             <option value="">Selecciona un producto</option>
-                                            @foreach ($productos as $producto)
+                                            @foreach ($this->productosParaLinea($linea) as $producto)
                                                 <option value="{{ $producto['id'] }}" @selected((string) ($linea['product_id'] ?? '') === (string) $producto['id'])>{{ trim(($producto['sku'] ? $producto['sku'].' ' : '').$producto['name']) }}</option>
                                             @endforeach
                                         </select>
@@ -51,11 +66,11 @@
                                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                     @enderror
                                 </td>
-                                <td class="py-2 px-4 border-b text-sm text-gray-600">
-                                    <input type="text" value="{{ $linea['descripcion'] }}" class="min-w-64 rounded-md border-gray-300 bg-gray-100 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" disabled>
+                                <td class="border-b px-3 py-3 align-top text-sm text-gray-600">
+                                    <input type="text" value="{{ $linea['descripcion'] }}" title="{{ $linea['descripcion'] ?: 'Sin descripción' }}" class="block h-10 w-full truncate rounded-md border-gray-300 bg-gray-100 text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500" disabled>
                                 </td>
-                                <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                    <input type="number" name="items[{{ $index }}][quantity]" wire:model.live="lineas.{{ $index }}.quantity" value="{{ $linea['quantity'] }}" min="1" @if (($linea['stock'] ?? null) !== null && ! $this->lineaBloqueada($linea)) max="{{ $linea['stock'] }}" @endif class="w-20 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500" @disabled($this->lineaBloqueada($linea))>
+                                <td class="border-b px-3 py-3 align-top text-right text-sm text-gray-600">
+                                    <input type="number" name="items[{{ $index }}][quantity]" wire:model.live="lineas.{{ $index }}.quantity" value="{{ $linea['quantity'] }}" min="1" @if (($linea['stock'] ?? null) !== null && ! $this->lineaBloqueada($linea)) max="{{ $linea['stock'] }}" @endif class="block h-10 w-full rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500" @disabled($this->lineaBloqueada($linea))>
                                     @if ($this->lineaBloqueada($linea))
                                         <input type="hidden" name="items[{{ $index }}][quantity]" value="{{ $linea['quantity'] }}">
                                     @endif
@@ -63,13 +78,13 @@
                                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                     @enderror
                                 </td>
-                                <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                    <span class="inline-block w-32 rounded-md border border-gray-200 bg-gray-100 px-3 py-2 text-right text-sm text-gray-700">
+                                <td class="border-b px-3 py-3 align-top text-right text-sm text-gray-600">
+                                    <span class="block h-10 w-full rounded-md border border-gray-200 bg-gray-100 px-2 py-2 text-right text-sm text-gray-700">
                                         ${{ number_format((float) $linea['unit_price'], 2) }}
                                     </span>
                                 </td>
-                                <td class="py-2 px-4 border-b text-right text-sm text-gray-600">
-                                    <input type="number" name="items[{{ $index }}][line_discount]" wire:model.live="lineas.{{ $index }}.line_discount" value="{{ $linea['line_discount'] }}" step="0.01" min="0" class="w-32 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500" @disabled($this->lineaBloqueada($linea))>
+                                <td class="border-b px-3 py-3 align-top text-right text-sm text-gray-600">
+                                    <input type="number" name="items[{{ $index }}][line_discount]" wire:model.live="lineas.{{ $index }}.line_discount" value="{{ $linea['line_discount'] }}" step="0.01" min="0" style="margin-left: auto; width: 5rem;" class="block h-10 rounded-md border-gray-300 text-right text-sm shadow-sm focus:border-indigo-500 focus:ring-indigo-500 disabled:bg-gray-100 disabled:text-gray-500" @disabled($this->lineaBloqueada($linea))>
                                     @if ($this->lineaBloqueada($linea))
                                         <input type="hidden" name="items[{{ $index }}][line_discount]" value="{{ $linea['line_discount'] }}">
                                     @endif
@@ -77,14 +92,14 @@
                                         <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
                                     @enderror
                                 </td>
-                                <td class="py-2 px-4 border-b text-right text-sm font-semibold text-gray-800">
+                                <td class="border-b px-3 py-3 align-top text-right text-sm font-semibold text-gray-800">
                                     ${{ number_format($this->subtotalLinea($linea), 2) }}
                                 </td>
-                                <td class="py-2 px-4 border-b text-center">
+                                <td class="border-b px-3 py-3 align-top text-center">
                                     @if ($this->lineaBloqueada($linea))
                                         <span class="text-sm font-semibold text-gray-400">Bloqueada</span>
                                     @else
-                                        <button type="button" wire:click="quitarLinea({{ $index }})" class="text-sm font-semibold text-red-600 hover:text-red-900">
+                                        <button type="button" wire:click="quitarLinea({{ $index }})" class="whitespace-nowrap text-sm font-semibold text-red-600 hover:text-red-900">
                                             Eliminar
                                         </button>
                                     @endif

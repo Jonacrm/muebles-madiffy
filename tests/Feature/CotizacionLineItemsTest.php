@@ -207,4 +207,53 @@ class CotizacionLineItemsTest extends TestCase
 
         $this->assertCount(1, $component->get('lineas'));
     }
+
+    public function test_it_filters_product_options_by_name(): void
+    {
+        $mesa = Product::create([
+            'sku' => 'MES-004',
+            'name' => 'Mesa auxiliar',
+            'description' => 'Mesa chica',
+            'unit_price' => 100,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
+        $silla = Product::create([
+            'sku' => 'SIL-004',
+            'name' => 'Silla plegable',
+            'description' => 'Silla compacta',
+            'unit_price' => 200,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
+        $librero = Product::create([
+            'sku' => 'LIB-004',
+            'name' => 'Librero modular',
+            'description' => 'Librero de madera',
+            'unit_price' => 300,
+            'stock' => 10,
+            'active' => true,
+        ]);
+
+        Livewire::test(CotizacionLineItems::class, [
+            'productosIniciales' => [$mesa, $silla, $librero],
+            'lineasIniciales' => [
+                [
+                    'product_id' => $mesa->id,
+                    'quantity' => 1,
+                    'unit_price' => 100,
+                    'line_discount' => 0,
+                ],
+            ],
+        ])
+            ->assertSee('MES-004 Mesa auxiliar')
+            ->assertSee('SIL-004 Silla plegable')
+            ->assertSee('LIB-004 Librero modular')
+            ->set('busquedaProducto', 'silla')
+            ->assertSee('MES-004 Mesa auxiliar')
+            ->assertSee('SIL-004 Silla plegable')
+            ->assertDontSee('LIB-004 Librero modular');
+    }
 }
