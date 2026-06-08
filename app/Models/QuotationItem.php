@@ -13,6 +13,10 @@ class QuotationItem extends Model
         'unit_price',
         'line_discount',
         'subtotal',
+        'product_sku',
+        'product_name',
+        'product_material',
+        'product_description',
     ];
 
     protected $casts = [

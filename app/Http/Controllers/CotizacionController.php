@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Quotation;
 use App\Services\CotizacionTotals;
 use App\Services\CotizacionVencimiento;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -37,6 +38,12 @@ class CotizacionController extends Controller
     private const EDITABLE_STATUS_VALUES = [
         'borrador',
         'enviada',
+    ];
+
+    private const PDF_STATUS_VALUES = [
+        'enviada',
+        'aceptada',
+        'convertida',
     ];
 
     private const VALIDITY_DAYS = [3, 7, 14];
@@ -149,6 +156,28 @@ class CotizacionController extends Controller
         ]);
     }
 
+    public function pdf(string $cotizacion)
+    {
+        $this->vencimiento->vencerExpiradas();
+        $quotation = Quotation::with(['client', 'user', 'items.product'])->findOrFail($cotizacion);
+
+        Gate::authorize('ver-cotizacion', $quotation);
+
+        if (! in_array($quotation->status, self::PDF_STATUS_VALUES, true)) {
+            return redirect()
+                ->route('cotizaciones.show', $quotation)
+                ->with('status', 'El PDF solo está disponible para cotizaciones enviadas, aceptadas o convertidas.');
+        }
+
+        $cotizacion = $this->presentarCotizacion($quotation);
+        $filename = sprintf('cotizacion-%s.pdf', str_replace(['/', '\\'], '-', $quotation->folio));
+
+        return Pdf::loadView('cotizaciones.pdf', [
+            'quotation' => $quotation,
+            'cotizacion' => $cotizacion,
+        ])->setPaper('letter')->download($filename);
+    }
+
     public function edit(string $cotizacion): View|RedirectResponse
     {
         $this->vencimiento->vencerExpiradas();
@@ -249,7 +278,7 @@ class CotizacionController extends Controller
     {
         $this->vencimiento->vencerExpiradas();
 
-        $quotation = Quotation::with(['items', 'order'])->findOrFail($cotizacion);
+        $quotation = Quotation::with(['client', 'user', 'items.product', 'order'])->findOrFail($cotizacion);
 
         Gate::authorize('convertir-cotizacion', $quotation);
 
@@ -267,12 +296,12 @@ class CotizacionController extends Controller
                 'client_id' => $quotation->client_id,
                 'user_id' => $quotation->user_id,
                 'quotation_folio' => $quotation->folio,
-                'client_name' => $quotation->client?->name,
-                'client_email' => $quotation->client?->email,
-                'client_phone' => $quotation->client?->phone,
-                'client_rfc' => $quotation->client?->rfc,
-                'client_address' => $quotation->client?->address,
-                'seller_name' => $quotation->user?->name,
+                'client_name' => $quotation->client_name ?? $quotation->client?->name,
+                'client_email' => $quotation->client_email ?? $quotation->client?->email,
+                'client_phone' => $quotation->client_phone ?? $quotation->client?->phone,
+                'client_rfc' => $quotation->client_rfc ?? $quotation->client?->rfc,
+                'client_address' => $quotation->client_address ?? $quotation->client?->address,
+                'seller_name' => $quotation->seller_name ?? $quotation->user?->name,
                 'status' => 'pendiente',
                 'subtotal' => $quotation->subtotal,
                 'discount_global' => $quotation->discount_global,
@@ -284,10 +313,10 @@ class CotizacionController extends Controller
             foreach ($quotation->items as $item) {
                 $order->items()->create([
                     'product_id' => $item->product_id,
-                    'product_sku' => $item->product?->sku,
-                    'product_name' => $item->product?->name,
-                    'product_material' => $item->product?->material,
-                    'product_description' => $item->product?->description,
+                    'product_sku' => $item->product_sku ?? $item->product?->sku,
+                    'product_name' => $item->product_name ?? $item->product?->name,
+                    'product_material' => $item->product_material ?? $item->product?->material,
+                    'product_description' => $item->product_description ?? $item->product?->description,
                     'quantity' => $item->quantity,
                     'unit_price' => $item->unit_price,
                     'line_discount' => $item->line_discount,
@@ -347,6 +376,10 @@ class CotizacionController extends Controller
                 $quotation->expires_at = $this->fechaVigencia((int) $quotation->validity_days);
             }
 
+            if ($data['status'] === 'enviada' && $oldStatus !== 'enviada') {
+                $this->sellarCotizacion($quotation, true);
+            }
+
             $quotation->save();
             $this->aplicarMovimientoStock($oldStatus, $data['status'], $totales['items']);
         });
@@ -383,7 +416,6 @@ class CotizacionController extends Controller
      */
     private function calcularTotales(array $items, float $discountGlobal, ?Quotation $quotation = null): array
     {
-        $products = Product::whereIn('id', array_column($items, 'product_id'))->get()->keyBy('id');
         $existingItems = $quotation?->items()->get()->keyBy('id') ?? collect();
 
         if ($quotation?->status === 'enviada') {
@@ -402,10 +434,13 @@ class CotizacionController extends Controller
             $items = array_merge($missingExistingItems, $items);
         }
 
+        $products = Product::whereIn('id', collect($items)->pluck('product_id')->filter()->unique()->all())->get()->keyBy('id');
+
         $lineas = array_map(function (array $item) use ($products, $existingItems, $quotation): array {
             $existingItem = ! empty($item['id']) ? $existingItems->get((int) $item['id']) : null;
+            $preserveExistingLine = $quotation && ! in_array($quotation->status, ['borrador', 'creada'], true) && $existingItem;
 
-            if ($quotation && ! in_array($quotation->status, ['borrador', 'creada'], true) && $existingItem) {
+            if ($preserveExistingLine) {
                 $productId = (int) $existingItem->product_id;
                 $quantity = (int) $existingItem->quantity;
                 $unitPrice = (float) $existingItem->unit_price;
@@ -419,11 +454,16 @@ class CotizacionController extends Controller
                 $lineId = ! empty($item['id']) ? (int) $item['id'] : null;
             }
 
+            $product = $products->get($productId);
             $subtotal = round(max(($quantity * $unitPrice) - $lineDiscount, 0), 2);
 
             return [
                 'id' => $lineId,
                 'product_id' => $productId,
+                'product_sku' => $preserveExistingLine ? ($existingItem->product_sku ?? $product?->sku) : $product?->sku,
+                'product_name' => $preserveExistingLine ? ($existingItem->product_name ?? $product?->name) : $product?->name,
+                'product_material' => $preserveExistingLine ? ($existingItem->product_material ?? $product?->material) : $product?->material,
+                'product_description' => $preserveExistingLine ? ($existingItem->product_description ?? $product?->description) : $product?->description,
                 'quantity' => $quantity,
                 'unit_price' => round($unitPrice, 2),
                 'line_discount' => round($lineDiscount, 2),
@@ -450,14 +490,42 @@ class CotizacionController extends Controller
      */
     private function guardarLineas(Quotation $quotation, array $items): void
     {
+        $products = Product::whereIn('id', collect($items)->pluck('product_id')->filter()->unique()->all())->get()->keyBy('id');
+
         foreach ($items as $item) {
+            $product = $products->get((int) $item['product_id']);
+
             $quotation->items()->create([
                 'product_id' => $item['product_id'],
+                'product_sku' => $item['product_sku'] ?? $product?->sku,
+                'product_name' => $item['product_name'] ?? $product?->name,
+                'product_material' => $item['product_material'] ?? $product?->material,
+                'product_description' => $item['product_description'] ?? $product?->description,
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
                 'line_discount' => $item['line_discount'],
                 'subtotal' => $item['subtotal'],
             ]);
+        }
+    }
+
+    private function sellarCotizacion(Quotation $quotation, bool $overwrite = false): void
+    {
+        $quotation->loadMissing(['client', 'user']);
+
+        $snapshot = [
+            'client_name' => $quotation->client?->name,
+            'client_email' => $quotation->client?->email,
+            'client_phone' => $quotation->client?->phone,
+            'client_rfc' => $quotation->client?->rfc,
+            'client_address' => $quotation->client?->address,
+            'seller_name' => $quotation->user?->name,
+        ];
+
+        foreach ($snapshot as $field => $value) {
+            if ($overwrite || blank($quotation->{$field})) {
+                $quotation->{$field} = $value;
+            }
         }
     }
 
@@ -772,40 +840,7 @@ class CotizacionController extends Controller
      */
     private function cotizacionPlantilla(): array
     {
-        $productos = Product::where('active', true)->orderBy('name')->take(2)->get();
-        $lineas = $productos->map(fn (Product $producto): array => [
-            'product_id' => $producto->id,
-            'sku' => $producto->sku,
-            'producto' => $producto->name,
-            'descripcion' => $producto->description,
-            'cantidad' => 1,
-            'quantity' => 1,
-            'precio_unitario' => (float) $producto->unit_price,
-            'unit_price' => (float) $producto->unit_price,
-            'precio_catalogo' => (float) $producto->unit_price,
-            'descuento_linea' => 0,
-            'line_discount' => 0,
-            'stock' => $producto->stock,
-            'subtotal' => (float) $producto->unit_price,
-        ])->all();
-
-        if ($lineas === []) {
-            $lineas[] = [
-                'product_id' => null,
-                'sku' => null,
-                'producto' => 'Selecciona un producto',
-                'descripcion' => null,
-                'cantidad' => 1,
-                'quantity' => 1,
-                'precio_unitario' => 0,
-                'unit_price' => 0,
-                'precio_catalogo' => 0,
-                'descuento_linea' => 0,
-                'line_discount' => 0,
-                'stock' => null,
-                'subtotal' => 0,
-            ];
-        }
+        $lineas = [];
 
         return array_merge([
             'id' => null,
@@ -831,8 +866,9 @@ class CotizacionController extends Controller
     private function presentarCotizacion(Quotation $quotation, bool $withLines = true): array
     {
         $useCatalogPrice = in_array($quotation->status, ['borrador', 'creada'], true);
+        $useSnapshot = ! $useCatalogPrice;
         $lineas = $withLines
-            ? $quotation->items->map(function ($item) use ($useCatalogPrice): array {
+            ? $quotation->items->map(function ($item) use ($useCatalogPrice, $useSnapshot): array {
                 $precioCotizado = (float) $item->unit_price;
                 $precioCatalogo = (float) ($item->product?->unit_price ?? $item->unit_price);
                 $precioUnitario = $useCatalogPrice ? $precioCatalogo : $precioCotizado;
@@ -842,9 +878,10 @@ class CotizacionController extends Controller
                 return [
                     'id' => $item->id,
                     'product_id' => $item->product_id,
-                    'sku' => $item->product?->sku,
-                    'producto' => $item->product?->name ?? 'Producto eliminado',
-                    'descripcion' => $item->product?->description,
+                    'sku' => $useSnapshot ? ($item->product_sku ?? $item->product?->sku) : $item->product?->sku,
+                    'producto' => $useSnapshot ? ($item->product_name ?? $item->product?->name ?? 'Producto eliminado') : ($item->product?->name ?? 'Producto eliminado'),
+                    'material' => $useSnapshot ? ($item->product_material ?? $item->product?->material) : $item->product?->material,
+                    'descripcion' => $useSnapshot ? ($item->product_description ?? $item->product?->description) : $item->product?->description,
                     'cantidad' => $cantidad,
                     'quantity' => $cantidad,
                     'precio_unitario' => $precioUnitario,
@@ -882,9 +919,12 @@ class CotizacionController extends Controller
             'folio' => $quotation->folio,
             'client_id' => $quotation->client_id,
             'user_id' => $quotation->user_id,
-            'cliente' => $quotation->client?->name ?? 'Cliente no disponible',
-            'rfc' => $quotation->client?->rfc,
-            'vendedor' => $quotation->user?->name ?? 'Usuario no disponible',
+            'cliente' => $useSnapshot ? ($quotation->client_name ?? $quotation->client?->name ?? 'Cliente no disponible') : ($quotation->client?->name ?? 'Cliente no disponible'),
+            'cliente_email' => $useSnapshot ? ($quotation->client_email ?? $quotation->client?->email) : $quotation->client?->email,
+            'cliente_phone' => $useSnapshot ? ($quotation->client_phone ?? $quotation->client?->phone) : $quotation->client?->phone,
+            'cliente_address' => $useSnapshot ? ($quotation->client_address ?? $quotation->client?->address) : $quotation->client?->address,
+            'rfc' => $useSnapshot ? ($quotation->client_rfc ?? $quotation->client?->rfc) : $quotation->client?->rfc,
+            'vendedor' => $useSnapshot ? ($quotation->seller_name ?? $quotation->user?->name ?? 'Usuario no disponible') : ($quotation->user?->name ?? 'Usuario no disponible'),
             'fecha_emision' => $quotation->created_at?->format('Y-m-d'),
             'vigencia' => $quotation->expires_at?->format('Y-m-d'),
             'expires_at' => $quotation->expires_at?->format('Y-m-d'),

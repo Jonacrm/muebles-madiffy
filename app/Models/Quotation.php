@@ -17,6 +17,12 @@ class Quotation extends Model
         'total',
         'expires_at',
         'validity_days',
+        'client_name',
+        'client_email',
+        'client_phone',
+        'client_rfc',
+        'client_address',
+        'seller_name',
     ];
 
     protected $casts = [

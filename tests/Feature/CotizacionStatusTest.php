@@ -100,6 +100,109 @@ class CotizacionStatusTest extends TestCase
         ]);
     }
 
+    public function test_pdf_download_is_available_for_sent_accepted_and_converted_quotes(): void
+    {
+        $user = User::factory()->create();
+
+        foreach (['enviada', 'aceptada', 'convertida'] as $index => $status) {
+            $quotation = $this->createQuotation($user, $status, sprintf('COT-PDF-%03d', $index + 1));
+
+            $this
+                ->actingAs($user)
+                ->get(route('cotizaciones.show', $quotation))
+                ->assertOk()
+                ->assertSee('Descargar PDF');
+        }
+    }
+
+    public function test_pdf_download_is_blocked_for_draft_quotes(): void
+    {
+        $user = User::factory()->create();
+        $quotation = $this->createQuotation($user, 'borrador', 'COT-PDF-DRAFT');
+
+        $this
+            ->actingAs($user)
+            ->get(route('cotizaciones.show', $quotation))
+            ->assertOk()
+            ->assertDontSee('Descargar PDF');
+
+        $this
+            ->actingAs($user)
+            ->get(route('cotizaciones.pdf', $quotation))
+            ->assertRedirect(route('cotizaciones.show', $quotation));
+    }
+
+    public function test_sent_quotation_pdf_can_be_downloaded(): void
+    {
+        $user = User::factory()->create();
+        $quotation = $this->createQuotation($user, 'enviada', 'COT-PDF-DOWNLOAD');
+
+        $this
+            ->actingAs($user)
+            ->get(route('cotizaciones.pdf', $quotation))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/pdf');
+    }
+
+    public function test_sent_quotation_keeps_snapshot_after_catalog_client_and_seller_changes(): void
+    {
+        $user = User::factory()->create(['name' => 'Vendedor original']);
+        $quotation = $this->createQuotation($user, 'creada', 'COT-SNAPSHOT-001');
+        $client = $quotation->client;
+        $product = $quotation->items()->first()->product;
+
+        $client->update([
+            'name' => 'Cliente snapshot',
+            'email' => 'snapshot@example.com',
+            'phone' => '555-1111',
+            'rfc' => 'RFC-SNAPSHOT',
+            'address' => 'Dirección snapshot',
+        ]);
+        $product->update([
+            'sku' => 'SKU-SNAPSHOT',
+            'name' => 'Producto snapshot',
+            'material' => 'Madera snapshot',
+            'description' => 'Descripción snapshot',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->patch(route('cotizaciones.estado', $quotation), ['status' => 'enviada'])
+            ->assertRedirect(route('cotizaciones.show', $quotation));
+
+        $client->update(['name' => 'Cliente cambiado']);
+        $user->update(['name' => 'Vendedor cambiado']);
+        $product->update([
+            'sku' => 'SKU-CHANGED',
+            'name' => 'Producto cambiado',
+            'description' => 'Descripción cambiada',
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->get(route('cotizaciones.show', $quotation))
+            ->assertOk()
+            ->assertSee('Cliente snapshot')
+            ->assertSee('Vendedor original')
+            ->assertSee('SKU-SNAPSHOT')
+            ->assertSee('Producto snapshot')
+            ->assertSee('Descripción snapshot')
+            ->assertDontSee('Cliente cambiado')
+            ->assertDontSee('Producto cambiado');
+
+        $this->assertDatabaseHas('quotations', [
+            'id' => $quotation->id,
+            'client_name' => 'Cliente snapshot',
+            'seller_name' => 'Vendedor original',
+        ]);
+        $this->assertDatabaseHas('quotation_items', [
+            'quotation_id' => $quotation->id,
+            'product_sku' => 'SKU-SNAPSHOT',
+            'product_name' => 'Producto snapshot',
+            'product_description' => 'Descripción snapshot',
+        ]);
+    }
+
     public function test_deleting_reserved_quotation_returns_stock(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

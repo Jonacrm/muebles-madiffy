@@ -15,6 +15,8 @@ class CotizacionLineItems extends Component
 
     public string $status = 'borrador';
 
+    public string $busquedaProducto = '';
+
     public function mount($productosIniciales = [], array $lineasIniciales = [], mixed $descuentoGlobalInicial = 0, string $status = 'borrador'): void
     {
         $this->productos = collect($productosIniciales)
@@ -180,6 +182,33 @@ class CotizacionLineItems extends Component
                 'precio_anterior' => $this->normalizarNumero($linea['precio_cotizado']),
                 'precio_actual' => $this->normalizarNumero($linea['precio_catalogo'] ?? $linea['unit_price'] ?? 0),
             ])
+            ->values()
+            ->all();
+    }
+
+    public function productosParaLinea(array $linea): array
+    {
+        $busqueda = mb_strtolower(trim($this->busquedaProducto));
+
+        $productos = collect($this->productos)
+            ->filter(function (array $producto) use ($busqueda): bool {
+                if ($busqueda === '') {
+                    return true;
+                }
+
+                return str_contains(mb_strtolower((string) $producto['name']), $busqueda);
+            });
+
+        if (! empty($linea['product_id'])) {
+            $productoSeleccionado = $this->productoPorId($linea['product_id']);
+
+            if ($productoSeleccionado !== null) {
+                $productos->push($productoSeleccionado);
+            }
+        }
+
+        return $productos
+            ->unique('id')
             ->values()
             ->all();
     }
