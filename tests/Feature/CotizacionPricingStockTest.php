@@ -191,7 +191,7 @@ class CotizacionPricingStockTest extends TestCase
 
     public function test_catalog_accepts_formatted_price_and_empty_stock_as_zero(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
         $this
             ->actingAs($user)
@@ -213,7 +213,7 @@ class CotizacionPricingStockTest extends TestCase
 
     public function test_catalog_sku_is_locked_on_update_and_duplicate_skus_are_blocked_on_create(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
         $product = Product::create([
             'sku' => 'SKU-LOCKED',
             'name' => 'Producto original',
@@ -252,6 +252,37 @@ class CotizacionPricingStockTest extends TestCase
                 'active' => '1',
             ])
             ->assertSessionHasErrors('sku');
+    }
+
+    public function test_inactive_products_are_blocked_when_creating_quotes(): void
+    {
+        $user = User::factory()->create();
+        $client = Client::create(['name' => 'Cliente de prueba']);
+        $product = Product::create([
+            'sku' => 'INACT-001',
+            'name' => 'Producto inactivo',
+            'unit_price' => 100,
+            'stock' => 10,
+            'active' => false,
+        ]);
+
+        $this
+            ->actingAs($user)
+            ->post(route('cotizaciones.store'), [
+                'folio' => 'COT-INACT-001',
+                'client_id' => $client->id,
+                'status' => 'borrador',
+                'discount_global' => 0,
+                'validity_days' => 7,
+                'items' => [
+                    [
+                        'product_id' => $product->id,
+                        'quantity' => 1,
+                        'line_discount' => 0,
+                    ],
+                ],
+            ])
+            ->assertSessionHasErrors('items');
     }
 
     private function createQuotation(User $user, string $status, float $price, int $quantity, int $stock): array

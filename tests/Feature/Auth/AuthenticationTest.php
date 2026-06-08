@@ -51,4 +51,42 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
         $response->assertRedirect('/');
     }
+
+    public function test_deleted_user_session_sees_deleted_account_screen(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $user->delete();
+
+        $response = $this->get('/dashboard');
+
+        $response->assertRedirect(route('session.deleted', absolute: false));
+
+        $this->get(route('session.deleted'))
+            ->assertOk()
+            ->assertSee('Tu cuenta ya no está disponible')
+            ->assertSee('Cerrar sesión');
+    }
+
+    public function test_deleted_user_session_can_logout(): void
+    {
+        $user = User::factory()->create();
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $user->delete();
+
+        $response = $this->post('/logout');
+
+        $this->assertGuest();
+        $response->assertRedirect('/');
+    }
 }

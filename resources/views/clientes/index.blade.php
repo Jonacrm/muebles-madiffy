@@ -18,9 +18,11 @@
                     
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-bold">Directorio de clientes</h3>
-                        <a href="{{ route('clientes.create') }}" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out shadow">
-                            + Nuevo cliente
-                        </a>
+                        @can('crear-cliente')
+                            <a href="{{ route('clientes.create') }}" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out shadow">
+                                + Nuevo cliente
+                            </a>
+                        @endcan
                     </div>
 
                     <div class="overflow-x-auto">
@@ -47,10 +49,13 @@
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $cliente->address ?? 'Sin dirección' }}</td>
                                         <td class="py-2 px-4 border-b text-center">
                                             <div class="flex justify-center items-center">
-                                                <a href="{{ route('clientes.edit', $cliente) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
-                                                    Editar
-                                                </a>
+                                                @can('editar-cliente')
+                                                    <a href="{{ route('clientes.edit', $cliente) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
+                                                        Editar
+                                                    </a>
+                                                @endcan
 
+                                                @can('eliminar-cliente')
                                                 <form action="{{ route('clientes.destroy', $cliente) }}" method="POST" class="inline ml-2" onsubmit="return confirm('¿Estás seguro de que deseas eliminar este cliente?');">
                                                     @csrf
                                                     @method('DELETE')
@@ -58,6 +63,7 @@
                                                         Eliminar
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

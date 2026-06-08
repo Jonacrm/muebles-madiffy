@@ -60,9 +60,11 @@
                                         </td>
                                         <td class="py-2 px-4 border-b text-right text-sm font-semibold text-gray-800">${{ number_format($pedido['total'], 2) }}</td>
                                         <td class="py-2 px-4 border-b text-center">
-                                            <a href="{{ route('pedidos.show', $pedido['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
-                                                Ver
-                                            </a>
+                                            @can('ver-pedido', $pedido['order'])
+                                                <a href="{{ route('pedidos.show', $pedido['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
+                                                    Ver
+                                                </a>
+                                            @endcan
                                         </td>
                                     </tr>
                                 @empty

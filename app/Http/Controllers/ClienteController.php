@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\View\View;
 
 class ClienteController extends Controller
@@ -14,6 +15,8 @@ class ClienteController extends Controller
      */
     public function index(): View
     {
+        Gate::authorize('ver-clientes');
+
         return view('clientes.index', [
             'clientes' => Client::latest()->get(),
         ]);
@@ -24,6 +27,8 @@ class ClienteController extends Controller
      */
     public function create(): View
     {
+        Gate::authorize('crear-cliente');
+
         return view('clientes.create');
     }
 
@@ -32,6 +37,8 @@ class ClienteController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
+        Gate::authorize('crear-cliente');
+
         Client::create($this->validatedData($request));
 
         return redirect()->route('clientes.index')->with('status', 'Cliente guardado correctamente.');
@@ -42,6 +49,8 @@ class ClienteController extends Controller
      */
     public function show(string $id): RedirectResponse
     {
+        Gate::authorize('editar-cliente');
+
         return redirect()->route('clientes.edit', $id);
     }
 
@@ -50,6 +59,8 @@ class ClienteController extends Controller
      */
     public function edit(string $id): View
     {
+        Gate::authorize('editar-cliente');
+
         $cliente = Client::findOrFail($id);
 
         return view('clientes.edit', [
@@ -63,6 +74,8 @@ class ClienteController extends Controller
      */
     public function update(Request $request, string $id): RedirectResponse
     {
+        Gate::authorize('editar-cliente');
+
         $cliente = Client::findOrFail($id);
         $cliente->update($this->validatedData($request));
 
@@ -74,6 +87,7 @@ class ClienteController extends Controller
      */
     public function destroy(string $id): RedirectResponse
     {
+        Gate::authorize('eliminar-cliente');
         $cliente = Client::findOrFail($id);
 
         if ($cliente->quotations()->exists()) {

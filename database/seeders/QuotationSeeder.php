@@ -2,92 +2,141 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
+use App\Models\Client;
+use App\Models\Product;
 use App\Models\Quotation;
 use App\Models\User;
-use App\Services\QuotationService;
+use App\Services\CotizacionTotals;
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 class QuotationSeeder extends Seeder
 {
     public function run(): void
     {
-        $service = new QuotationService();
-        $user    = User::first();
+        $totals = new CotizacionTotals;
 
-        // Cotización 1 — borrador
-        $q1 = Quotation::create([
-            'folio'           => 'COT-2026-001',
-            'client_id'       => 1,
-            'user_id'         => $user->id,
-            'status'          => 'borrador',
-            'subtotal'        => 0,
-            'discount_global' => 0,
-            'tax'             => 0,
-            'total'           => 0,
-            'expires_at'      => now()->addDays(15),
+        DB::transaction(function () use ($totals): void {
+            $seller = User::where('role', 'vendedor')->firstOrFail();
+
+            $this->crearCotizacion(
+                totals: $totals,
+                folio: 'COT-2026-001',
+                client: Client::where('email', 'compras@constructoranor.com')->firstOrFail(),
+                seller: $seller,
+                status: 'borrador',
+                discountGlobal: 0,
+                validityDays: 15,
+                expiresAt: now()->addDays(15)->toDateString(),
+                lineas: [
+                    [
+                        'product' => Product::where('sku', 'MUE-001')->firstOrFail(),
+                        'quantity' => 10,
+                        'line_discount' => 0,
+                    ],
+                    [
+                        'product' => Product::where('sku', 'MUE-002')->firstOrFail(),
+                        'quantity' => 2,
+                        'line_discount' => 500,
+                    ],
+                ],
+            );
+
+            $this->crearCotizacion(
+                totals: $totals,
+                folio: 'COT-2026-002',
+                client: Client::where('email', 'administracion@sonorainn.com')->firstOrFail(),
+                seller: $seller,
+                status: 'aceptada',
+                discountGlobal: 1000,
+                validityDays: 30,
+                expiresAt: now()->addDays(30)->toDateString(),
+                lineas: [
+                    [
+                        'product' => Product::where('sku', 'MUE-003')->firstOrFail(),
+                        'quantity' => 1,
+                        'line_discount' => 0,
+                    ],
+                    [
+                        'product' => Product::where('sku', 'MUE-004')->firstOrFail(),
+                        'quantity' => 10,
+                        'line_discount' => 0,
+                    ],
+                ],
+            );
+
+            $this->crearCotizacion(
+                totals: $totals,
+                folio: 'COT-2026-003',
+                client: Client::where('email', 'contacto@elmesquite.com')->firstOrFail(),
+                seller: $seller,
+                status: 'vencida',
+                discountGlobal: 0,
+                validityDays: 14,
+                expiresAt: now()->subDays(5)->toDateString(),
+                lineas: [
+                    [
+                        'product' => Product::where('sku', 'MUE-007')->firstOrFail(),
+                        'quantity' => 2,
+                        'line_discount' => 0,
+                    ],
+                ],
+            );
+        });
+    }
+
+    /**
+     * @param  array<int, array{product: Product, quantity: int, line_discount: float|int}>  $lineas
+     */
+    private function crearCotizacion(
+        CotizacionTotals $totals,
+        string $folio,
+        Client $client,
+        User $seller,
+        string $status,
+        float $discountGlobal,
+        int $validityDays,
+        string $expiresAt,
+        array $lineas,
+    ): void {
+        $lineasTotales = collect($lineas)
+            ->map(fn (array $linea): array => [
+                'product_id' => $linea['product']->id,
+                'cantidad' => (int) $linea['quantity'],
+                'precio_unitario' => (float) $linea['product']->unit_price,
+                'descuento_linea' => (float) $linea['line_discount'],
+            ])
+            ->all();
+
+        $totalesCalculados = $totals->calcular($lineasTotales, $discountGlobal);
+
+        $quotation = Quotation::create([
+            'folio' => $folio,
+            'client_id' => $client->id,
+            'user_id' => $seller->id,
+            'status' => $status,
+            'subtotal' => $totalesCalculados['subtotal'],
+            'discount_global' => $totalesCalculados['descuento_global'],
+            'tax' => $totalesCalculados['iva'],
+            'total' => $totalesCalculados['total'],
+            'expires_at' => $expiresAt,
+            'validity_days' => $validityDays,
         ]);
 
-        $service->addItem($q1, [
-            'product_id'    => 1,
-            'quantity'      => 10,
-            'unit_price'    => 3500.00,
-            'line_discount' => 0,
-        ]);
+        foreach ($totalesCalculados['lineas'] as $linea) {
+            $quotation->items()->create([
+                'product_id' => $linea['product_id'],
+                'quantity' => $linea['cantidad'],
+                'unit_price' => $linea['precio_unitario'],
+                'line_discount' => $linea['descuento_linea'],
+                'subtotal' => $linea['subtotal'],
+            ]);
+        }
 
-        $service->addItem($q1, [
-            'product_id'    => 2,
-            'quantity'      => 2,
-            'unit_price'    => 8900.00,
-            'line_discount' => 500,
-        ]);
-
-        // Cotización 2 — aceptada (lista para convertir)
-        $q2 = Quotation::create([
-            'folio'           => 'COT-2026-002',
-            'client_id'       => 2,
-            'user_id'         => $user->id,
-            'status'          => 'aceptada',
-            'subtotal'        => 0,
-            'discount_global' => 1000,
-            'tax'             => 0,
-            'total'           => 0,
-            'expires_at'      => now()->addDays(30),
-        ]);
-
-        $service->addItem($q2, [
-            'product_id'    => 3,
-            'quantity'      => 1,
-            'unit_price'    => 24500.00,
-            'line_discount' => 0,
-        ]);
-
-        $service->addItem($q2, [
-            'product_id'    => 4,
-            'quantity'      => 10,
-            'unit_price'    => 1200.00,
-            'line_discount' => 0,
-        ]);
-
-        $service->calculateTotals($q2);
-
-        // Cotización 3 — vencida
-        $q3 = Quotation::create([
-            'folio'           => 'COT-2026-003',
-            'client_id'       => 3,
-            'user_id'         => $user->id,
-            'status'          => 'vencida',
-            'subtotal'        => 0,
-            'discount_global' => 0,
-            'tax'             => 0,
-            'total'           => 0,
-            'expires_at'      => now()->subDays(5),
-        ]);
-
-        $service->addItem($q3, [
-            'product_id'    => 7,
-            'quantity'      => 2,
-            'unit_price'    => 12000.00,
-            'line_discount' => 0,
-        ]);
+        if (in_array($status, ['creada', 'enviada', 'aceptada'], true)) {
+            foreach ($lineasTotales as $linea) {
+                Product::whereKey($linea['product_id'])->decrement('stock', $linea['cantidad']);
+            }
+        }
     }
 }

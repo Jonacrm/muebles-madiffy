@@ -20,9 +20,11 @@
                             <h3 class="text-lg font-bold">Listado de cotizaciones</h3>
                         </div>
 
+                        @can('crear-cotizacion')
                         <a href="{{ route('cotizaciones.create') }}" class="inline-flex items-center justify-center rounded bg-indigo-700 px-4 py-2 font-bold text-white shadow transition duration-150 ease-in-out hover:bg-indigo-800">
                             + Nueva cotización
                         </a>
+                        @endcan
                     </div>
 
                     <div class="grid gap-4 mb-6 md:grid-cols-3">
@@ -80,27 +82,33 @@
                                         <td class="py-2 px-4 border-b text-right text-sm font-semibold text-gray-800">${{ number_format($cotizacion['total'], 2) }}</td>
                                         <td class="py-2 px-4 border-b text-center">
                                             <div class="flex justify-center items-center gap-3">
-                                                <a href="{{ route('cotizaciones.show', $cotizacion['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
-                                                    Ver
-                                                </a>
-
-                                                @if (! in_array($cotizacion['status'] ?? null, ['borrador', 'enviada'], true))
-                                                    <span class="text-gray-400 text-sm font-semibold cursor-not-allowed" aria-disabled="true">
-                                                        Editar
-                                                    </span>
-                                                @else
-                                                    <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
-                                                        Editar
+                                                @can('ver-cotizacion', $cotizacion['quotation'])
+                                                    <a href="{{ route('cotizaciones.show', $cotizacion['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
+                                                        Ver
                                                     </a>
-                                                @endif
+                                                @endcan
 
-                                                <form action="{{ route('cotizaciones.destroy', $cotizacion['id']) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta cotización?');">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-semibold">
-                                                        Eliminar
-                                                    </button>
-                                                </form>
+                                                @can('editar-cotizacion', $cotizacion['quotation'])
+                                                    @if (! in_array($cotizacion['status'] ?? null, ['borrador', 'enviada'], true))
+                                                        <span class="text-gray-400 text-sm font-semibold cursor-not-allowed" aria-disabled="true">
+                                                            Editar
+                                                        </span>
+                                                    @else
+                                                        <a href="{{ route('cotizaciones.edit', $cotizacion['id']) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
+                                                            Editar
+                                                        </a>
+                                                    @endif
+                                                @endcan
+
+                                                @can('eliminar-cotizacion', $cotizacion['quotation'])
+                                                    <form action="{{ route('cotizaciones.destroy', $cotizacion['id']) }}" method="POST" class="inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar esta cotización?');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-red-600 hover:text-red-900 text-sm font-semibold">
+                                                            Eliminar
+                                                        </button>
+                                                    </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

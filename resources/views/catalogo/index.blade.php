@@ -18,9 +18,12 @@
                     
                     <div class="flex justify-between items-center mb-6">
                         <h3 class="text-lg font-bold">Listado de productos</h3>
+                        @can('gestionar-catalogo')
                         <a href="{{ route('catalogo.create') }}" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold py-2 px-4 rounded transition duration-150 ease-in-out shadow">
                             + Nuevo producto
                         </a>
+                        @endcan
+
                     </div>
 
                     <div class="overflow-x-auto">
@@ -50,6 +53,8 @@
                                         <td class="py-2 px-4 border-b text-sm text-gray-600">{{ $producto->active ? 'Sí' : 'No' }}</td>
                                         <td class="py-2 px-4 border-b text-center">
                                             <div class="flex justify-center items-center">
+
+                                                @can('gestionar-catalogo')
                                                 <a href="{{ route('catalogo.edit', $producto) }}" class="text-indigo-600 hover:text-indigo-900 text-sm font-semibold">
                                                     Editar
                                                 </a>
@@ -61,6 +66,7 @@
                                                         Eliminar
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>
